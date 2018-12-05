@@ -1,4 +1,12 @@
 Rails.application.routes.draw do
+  get 'simple_bench/static'
+
+  get 'simple_bench/db'
+
+  get 'simple_bench/fivehundred'
+
+  get 'simple_bench/delay'
+
   # The priority is based upon order of creation: first created -> highest priority.
   # See how all your routes lay out with "rake routes".
 
