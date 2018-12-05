@@ -1,0 +1,4 @@
+== README
+
+This is a Widget Tracking application, which exists very specifically to benchmark different
+Rails actions in different Ruby versions.
