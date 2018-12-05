@@ -1,0 +1,13 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    descriptive_statistics (2.5.1)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  descriptive_statistics
+
+BUNDLED WITH
+   1.16.2
