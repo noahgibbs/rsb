@@ -1,2 +1,3 @@
 scratch_*.sh
 scratch_*.rb
+*_bench_rsb.csv
