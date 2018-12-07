@@ -27,11 +27,9 @@ rvm 2.5.3,2.4.5,2.3.8 do ""
 
 # In-Progress or In-Exploration Tools
 
-* https://bundler.io/v1.12/gemfile_ruby.html
 * https://github.com/thirtysixthspan/descriptive_statistics
 * https://github.com/elastic/logstash/blob/v2.0.0/lib/bootstrap/bundler.rb
 * https://github.com/elastic/logstash/tree/v2.0.0/lib/bootstrap
-* https://github.com/thoughtbot/appraisal
 
 # References
 
