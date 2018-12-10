@@ -18,18 +18,18 @@ RUBIES = [
         prefix: "2.0.0p648",
         rvm: "ruby-2.0.0-p648",
     },
-    #{
-    #    name: "2.1.10",
-    #},
-    #{
-    #    name: "2.2.10",
-    #},
-    #{
-    #    name: "2.3.8",
-    #},
-    #{
-    #    name: "2.4.5",
-    #},
+    {
+        name: "2.1.10",
+    },
+    {
+        name: "2.2.10",
+    },
+    {
+        name: "2.3.8",
+    },
+    {
+        name: "2.4.5",
+    },
     {
         name: "2.5.3",
     }
@@ -61,6 +61,7 @@ benchmark_iters = 10_000
 port = 4323
 extra_args = "" # "-c #{concurrency}"
 url = "http://127.0.0.1:#{port}/simple_bench/static"
+output_format = :csv   # :gnuplot
 
 VERBOSE = true
 
@@ -86,6 +87,15 @@ RUBIES.each do |ruby_info|
         puts "RVM list does not include #{ruby_info[:rvm].inspect} - skipping!"
         next
     end
+
+    if output_format == :csv
+        output_args = "-e #{Time.now.to_i}_#{ruby_info[:prefix]}_bench_rsb.csv"
+    elsif output_format == :gnuplot
+        output_args = "-g #{Time.now.to_i}_#{ruby_info[:prefix]}_bench_rsb.gnuplot"
+    else
+        raise "Unknown output format: #{output_format.inspect}"
+    end
+
     script = <<SCRIPT
 #!/bin/bash -l
 
@@ -125,7 +135,7 @@ set +e # pushd and popd seem to fail weirdly here... Maybe it's RVM?
 popd
 
 BUNDLE_GEMFILE="Gemfile.#{ruby_info[:name]}" ab #{extra_args} -n #{warmup_iters} -l #{url}
-BUNDLE_GEMFILE="Gemfile.#{ruby_info[:name]}" ab #{extra_args} -n #{benchmark_iters} -g #{ruby_info[:prefix]}_bench_rsb.gnuplot #{url}
+BUNDLE_GEMFILE="Gemfile.#{ruby_info[:name]}" ab #{extra_args} -n #{benchmark_iters} #{output_args} #{url}
 kill %1
 SCRIPT
 
