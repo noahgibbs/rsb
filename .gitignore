@@ -1,3 +1,4 @@
 scratch_*.sh
 scratch_*.rb
 *_bench_rsb.csv
+*_bench_rsb.gnuplot
