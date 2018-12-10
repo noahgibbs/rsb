@@ -13,11 +13,11 @@ RUBIES = [
     #    prefix: "2.0.0",
     #    rvm: "ruby-2.0.0-p0",
     #},
-    #{
-    #    name: "2.0.0-p648",
-    #    prefix: "2.0.0p648",
-    #    rvm: "ruby-2.0.0-p648",
-    #},
+    {
+        name: "2.0.0-p648",
+        prefix: "2.0.0p648",
+        rvm: "ruby-2.0.0-p648",
+    },
     #{
     #    name: "2.1.10",
     #},
@@ -90,7 +90,9 @@ RUBIES.each do |ruby_info|
 #!/bin/bash -l
 
 function rails_cleanup {
-  kill `ps x | grep "rails server -p #{port}" | grep -v grep | cut -f1 -d" "`
+  kill -s hup `ps x | grep "rails server -p #{port}" | grep -v grep | cut -f1 -d" "`
+  sleep 1
+  kill -s term `ps x | grep "rails server -p #{port}" | grep -v grep | cut -f1 -d" "`
 }
 echo Check whether Rails server is already incorrectly running
 rails_cleanup
@@ -108,7 +110,7 @@ BUNDLE_GEMFILE="Gemfile.#{ruby_info[:name]}" bundle         # Make sure gems are
 BUNDLE_GEMFILE="Gemfile.#{ruby_info[:name]}" bundle exec rake db:migrate  # Make sure DB is up to date
 
 # This won't notice if Rails fails horribly, which can happen if the old process wasn't cleaned correctly.
-BUNDLE_GEMFILE="Gemfile.#{ruby_info[:name]}" rails server -p #{port} &
+BUNDLE_GEMFILE="Gemfile.#{ruby_info[:name]}" RAILS_ENV=production rails server -p #{port} &
 trap rails_cleanup EXIT
 
 echo Waiting for successful request
@@ -118,15 +120,12 @@ while ! curl #{url}; do
 done
 echo Completed successful request
 
-set +e # pushd and popd seem to fail weirdly here...
+set +e # pushd and popd seem to fail weirdly here... Maybe it's RVM?
 
 popd
-touch /tmp/got_here_14
 
 BUNDLE_GEMFILE="Gemfile.#{ruby_info[:name]}" ab #{extra_args} -n #{warmup_iters} -l #{url}
-touch /tmp/got_here_15
-BUNDLE_GEMFILE="Gemfile.#{ruby_info[:name]}" ab #{extra_args} -n #{benchmark_iters} -e #{ruby_info[:prefix]}_bench_rsb.csv #{url}
-touch /tmp/got_here_16
+BUNDLE_GEMFILE="Gemfile.#{ruby_info[:name]}" ab #{extra_args} -n #{benchmark_iters} -g #{ruby_info[:prefix]}_bench_rsb.gnuplot #{url}
 kill %1
 SCRIPT
 
