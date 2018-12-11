@@ -1,0 +1,10 @@
+## Features We Could Really Use
+
+* More data collection - fold output samples into a file tagged with platform, hostname, etc.
+
+## Things to Productively Benchmark
+
+* App server - is WEBRick making a difference here?
+* Mac vs Ubuntu
+* Rails vs plain Rack
+* Number of warmup iterations
