@@ -35,9 +35,6 @@ RUBIES = [
     }
 ]
 
-# ab -c $CONCURRENCY -n $WARMUP_ITERS -l $URL
-# ab -c $CONCURRENCY -n $BENCHMARK_ITERS -l -e rsb.csv $URL
-
 available = `rvm list strings`
 if available.strip == ""
     raise "Can't get list of available rubies!"
