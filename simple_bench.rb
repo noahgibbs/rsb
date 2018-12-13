@@ -8,11 +8,11 @@ Dir.chdir(File.expand_path __dir__)
 require "tempfile"
 
 RUBIES = [
-    #{
-    #    name: "2.0.0-p0",
-    #    prefix: "2.0.0",
-    #    rvm: "ruby-2.0.0-p0",
-    #},
+    {
+        name: "2.0.0-p0",
+        prefix: "2.0.0",
+        rvm: "ruby-2.0.0-p0",
+    },
     {
         name: "2.0.0-p648",
         prefix: "2.0.0p648",
