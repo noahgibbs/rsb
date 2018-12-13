@@ -8,3 +8,4 @@
 * Mac vs Ubuntu
 * Rails vs plain Rack
 * Number of warmup iterations
+* Concurrency of requests
