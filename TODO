@@ -1,6 +1,8 @@
 ## Features We Could Really Use
 
-* More data collection - fold output samples into a file tagged with platform, hostname, etc.
+* More host data collection - fold output samples into a file tagged with platform, hostname, etc.
+* Data processing from that output format - variance, percentiles, etc.
+* Packer build for image, for preinstalled Nokogiri on all Ruby versions, etc.
 
 ## Things to Productively Benchmark
 
