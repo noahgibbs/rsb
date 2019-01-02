@@ -108,6 +108,7 @@ output = {
         #"ec2 instance type" => `wget -q -O - http://169.254.169.254/latest/meta-data/instance-type`,
         "ab_path" => which_ab,
         "uname" => `uname -a`,
+        "dir" => Dir.pwd,
     }.merge(env_hash),
     "warmup_samples" => [],
     "benchmark_samples" => [],
@@ -169,27 +170,30 @@ begin
 
   puts "Starting real benchmark iterations"
   # Then final iterations, saved to a GNUPlot file - this may be quite large
-  csystem("ab -c #{OPTS[:concurrency]} -n #{OPTS[:warmup_iters]} #{OPTS[:url]} -g #{gnuplot_file}", "Couldn't run benchmark iterations!")
+  csystem("ab -c #{OPTS[:concurrency]} -n #{OPTS[:warmup_iters]} -g #{gnuplot_file} #{OPTS[:url]}", "Couldn't run benchmark iterations!")
 ensure
   puts "Cleaning up server process(es)"
   server_cleanup # before the benchmark finishes, make sure the server is dead
 end
 
 # Now we've collected the data from ApacheBench. Time to parse the GNUplot file and rewrite to JSON.
-File.open("r", gnuplot_file) do |f|
+starttimes = Hash.new(0)
+File.open(gnuplot_file, "r") do |f|
   headers = nil
   f.each_line do |line|
     if headers
-      puts "Line: #{line.inspect}"
-      output["benchmark_samples"] << 0.0
+      starttime, seconds, ctime, dtime, ttime, wait = line.split("\t")
+      output["benchmark_samples"] << dtime.to_i
+      starttimes[starttime] += 1
     else
-      puts "Headers: #{line.inspect}"
-      headers = line.split("\n")
+      headers = line.split("\t")
     end
   end
 end
+max_starttime = starttimes.keys.max
+min_starttime = starttimes.keys.min
 
 json_text = JSON.pretty_generate(output)
-File.open("w", OPTS[:out_file]) do |f|
+File.open(OPTS[:out_file], "w") do |f|
   f.write json_text
 end

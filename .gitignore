@@ -2,3 +2,5 @@ scratch_*.sh
 scratch_*.rb
 *_bench_rsb.csv
 *_bench_rsb.gnuplot
+**/rsb_rack_*.json
+**/rsb_rails_*.json
