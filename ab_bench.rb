@@ -14,7 +14,7 @@ OPTS = {
   url: "http://127.0.0.1:PORT/simple_bench/static",
   server_pre_cmd: "bundle exec rake db:migrate",
   server_cmd: "rackup -p PORT",
-  out_file: "rsb_output.json",
+  out_file: "rsb_output_TIME.json",
   timestamp: Time.now.to_i,
   verbose: 1,
 }
@@ -110,8 +110,12 @@ output = {
         "uname" => `uname -a`,
         "dir" => Dir.pwd,
     }.merge(env_hash),
-    "warmup_samples" => [],
-    "benchmark_samples" => [],
+    "requests" => {
+      "warmup" => [],
+      "benchmark" => [],
+      #"benchmark_min_starttime"
+      #"benchmark_max_starttime"
+    }
 }
 
 def running_server_pids
@@ -183,15 +187,16 @@ File.open(gnuplot_file, "r") do |f|
   f.each_line do |line|
     if headers
       starttime, seconds, ctime, dtime, ttime, wait = line.split("\t")
-      output["benchmark_samples"] << dtime.to_i
+      output["requests"]["benchmark"] << dtime.to_i
       starttimes[starttime] += 1
     else
       headers = line.split("\t")
     end
   end
 end
-max_starttime = starttimes.keys.max
-min_starttime = starttimes.keys.min
+output["requests"]["max_starttime"] = starttimes.keys.max
+output["requests"]["min_starttime"] = starttimes.keys.min
+output["requests"]["starttime_hist"] = starttimes
 
 json_text = JSON.pretty_generate(output)
 File.open(OPTS[:out_file], "w") do |f|
