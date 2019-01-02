@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 
-if ENV["RUBY_RSB_EXTRA_GEMFILES"]
-  ENV["RUBY_RSB_EXTRA_GEMFILES"].split(",").each do |gemfile|
+if ENV["RSB_EXTRA_GEMFILES"]
+  ENV["RSB_EXTRA_GEMFILES"].split(",").each do |gemfile|
     eval_gemfile gemfile
   end
 end
