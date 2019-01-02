@@ -1,5 +1,7 @@
 ## Features We Could Really Use
 
+* Check for 'ab' binary and if not present, install or complain
+* Notice things like return code for ApacheBench: https://stackoverflow.com/questions/31789614/how-to-verify-ab-responses
 * More host data collection - fold output samples into a file tagged with platform, hostname, etc.
 * Data processing from that output format - variance, percentiles, etc.
 * Packer build for image, for preinstalled Nokogiri on all Ruby versions, etc.
@@ -7,7 +9,9 @@
 ## Things to Productively Benchmark
 
 * App server - is WEBRick making a difference here?
-* Mac vs Ubuntu
-* Rails vs plain Rack
 * Number of warmup iterations
 * Concurrency of requests
+* ApacheBench vs RestClient vs benchmark-ips vs others?
+* JRuby, maybe others like TruffleRuby or Rubinius
+* ApacheBench with -k option for HTTP keepalive, multiple requests/connection
+
