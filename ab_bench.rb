@@ -116,17 +116,17 @@ output = {
 def running_server_pids
   ps_out = `ps x`
   proc_lines = ps_out.split("\n").select { |line| line[OPTS[:server_cmd]] && !line["grep"] && !line["ab_bench"] }
-  STDERR.puts "Proc_lines:\n#{proc_lines.join("\n")}\n\n"
   proc_lines.map { |line| line.split(" ", 2)[0].to_i }
 end
 
 def server_cleanup
   pids = running_server_pids
-  STDERR.puts "Found server pids based on server command #{OPTS[:server_cmd].inspect}: #{pids.inspect}"
+  verbose "Found server pid(s) to SIGHUP based on server command #{OPTS[:server_cmd].inspect}: #{pids.inspect}"
   return if pids == []
   pids.each { |pid| Process.kill "HUP", pid }
-  sleep 1
+  sleep 3 # Leave time to clean up after SIGHUP
   pids = running_server_pids
+  verbose "Found server pid(s) to SIGKILL based on server command #{OPTS[:server_cmd].inspect}: #{pids.inspect}"
   pids.each { |pid| Process.kill "KILL", pid }
 end
 
@@ -156,7 +156,7 @@ begin
   csystem("bundle install", "Couldn't install/verify gems for server process!")
   csystem("#{OPTS[:server_pre_cmd]}", "Couldn't run precommand(s) (#{OPTS[:server_pre_cmd].inspect}) for server process!")
 
-  raise "URL should not be available before the server runs!" if url_available?
+  raise "URL #{OPTS[:url].inspect} should not be available before the server runs!" if url_available?
 
   puts "Starting server w/ command: #{OPTS[:server_cmd]}"
   start_server
@@ -165,11 +165,11 @@ begin
 
   puts "Starting warmup iterations"
   # Warmup iterations first
-  csystem("ab -c #{OPTS[:concurrency]} -n #{OPTS[:warmup_iters]} #{OPTS[:url]}")
+  csystem("ab -c #{OPTS[:concurrency]} -n #{OPTS[:warmup_iters]} #{OPTS[:url]}", "Couldn't run warmup iterations!")
 
   puts "Starting real benchmark iterations"
   # Then final iterations, saved to a GNUPlot file - this may be quite large
-  csystem("ab -c #{OPTS[:concurrency]} -n #{OPTS[:warmup_iters]} #{OPTS[:url]} -g #{gnuplot_file}")
+  csystem("ab -c #{OPTS[:concurrency]} -n #{OPTS[:warmup_iters]} #{OPTS[:url]} -g #{gnuplot_file}", "Couldn't run benchmark iterations!")
 ensure
   puts "Cleaning up server process(es)"
   server_cleanup # before the benchmark finishes, make sure the server is dead
