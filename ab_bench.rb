@@ -40,6 +40,9 @@ BANNER
   end
   opts.on("-n NUMBER", "--num-iterations NUMBER", Integer, "number of benchmarked iterations") do |n|
     OPTS[:benchmark_iters] = n
+    unless n % 100 == 0
+      puts "Warning: if the benchmark iterations aren't a multiple of 100, you may get unexpected percentile behavior when data processing..."
+    end
   end
   opts.on("-c NUMBER", "--ab-concurrency NUMBER", Integer, "number of concurrent ApacheBench (ab) requests") do |n|
     OPTS[:concurrency] = n
