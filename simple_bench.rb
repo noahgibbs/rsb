@@ -116,6 +116,12 @@ set -e
 BUNDLE_GEMFILE="Gemfile.#{ruby_info[:name]}" bundle         # Make sure gems are installed
 BUNDLE_GEMFILE="Gemfile.#{ruby_info[:name]}" bundle exec rake db:migrate  # Make sure DB is up to date
 
+if curl #{url};
+then
+    echo "Curl should not successfully receive a page before running the server"
+    no_such_command_please_die
+fi
+
 # This won't notice if Rails fails horribly, which can happen if the old process wasn't cleaned correctly.
 BUNDLE_GEMFILE="Gemfile.#{ruby_info[:name]}" RAILS_ENV=production rails server -p #{port} &
 trap rails_cleanup EXIT
@@ -131,7 +137,7 @@ set +e # pushd and popd seem to fail weirdly here... Maybe it's RVM?
 
 popd
 
-BUNDLE_GEMFILE="Gemfile.#{ruby_info[:name]}" ab #{extra_args} -n #{warmup_iters} -l #{url}
+BUNDLE_GEMFILE="Gemfile.#{ruby_info[:name]}" ab #{extra_args} -n #{warmup_iters} #{url}
 BUNDLE_GEMFILE="Gemfile.#{ruby_info[:name]}" ab #{extra_args} -n #{benchmark_iters} #{output_args} #{url}
 kill %1
 SCRIPT
