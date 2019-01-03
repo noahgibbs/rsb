@@ -3,7 +3,7 @@
 require "json"
 require "optparse"
 
-cohorts_by = "rvm current,warmup_iters"
+cohorts_by = "rvm current,warmup_iters,server_cmd,url"
 input_glob = "rsb_*.json"
 
 OptionParser.new do |opts|
