@@ -4,6 +4,7 @@ require_relative "bench_lib"
 include BenchLib
 
 require "optparse"
+require "date"
 require "json"
 
 OPTS = {
@@ -181,7 +182,7 @@ begin
 
   puts "Starting real benchmark iterations"
   # Then final iterations, saved to a GNUPlot file - this may be quite large
-  csystem("ab -c #{OPTS[:concurrency]} -n #{OPTS[:warmup_iters]} -g #{gnuplot_file} #{OPTS[:url]}", "Couldn't run benchmark iterations!")
+  csystem("ab -c #{OPTS[:concurrency]} -n #{OPTS[:benchmark_iters]} -g #{gnuplot_file} #{OPTS[:url]}", "Couldn't run benchmark iterations!")
 ensure
   puts "Cleaning up server process(es)"
   server_cleanup # before the benchmark finishes, make sure the server is dead
@@ -194,6 +195,7 @@ File.open(gnuplot_file, "r") do |f|
   f.each_line do |line|
     if headers
       starttime, seconds, ctime, dtime, ttime, wait = line.split("\t")
+      starttime = DateTime.parse(starttime)
       output["requests"]["benchmark"] << dtime.to_i
       starttimes[starttime] += 1
     else

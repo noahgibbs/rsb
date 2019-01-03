@@ -3,7 +3,7 @@
 require "json"
 require "optparse"
 
-cohorts_by = "rvm current,warmup_iters,env-RUBYOPT"
+cohorts_by = "rvm current,warmup_iters"
 input_glob = "rsb_*.json"
 
 OptionParser.new do |opts|
@@ -30,7 +30,7 @@ process_output = {
   input_files: INPUT_FILES,
   #req_time_by_cohort: req_time_by_cohort,
   throughput_by_cohort: throughput_by_cohort,
-  startup_by_cohort: startup_by_cohort,
+  #startup_by_cohort: startup_by_cohort,
   processed: {
     :cohort => {},
   },
