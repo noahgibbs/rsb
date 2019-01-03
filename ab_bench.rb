@@ -195,7 +195,7 @@ File.open(gnuplot_file, "r") do |f|
   f.each_line do |line|
     if headers
       starttime, seconds, ctime, dtime, ttime, wait = line.split("\t")
-      starttime = DateTime.parse(starttime).to_i
+      starttime = DateTime.parse(starttime).to_time.to_i
       output["requests"]["benchmark"] << dtime.to_i
       starttimes[starttime] += 1
     else
