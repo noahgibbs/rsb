@@ -14,6 +14,7 @@ OPTS = {
   url: "http://127.0.0.1:PORT/simple_bench/static",
   server_pre_cmd: "bundle exec rake db:migrate",
   server_cmd: "rackup -p PORT",
+  server_kill_matcher: "rackup"
   out_file: "rsb_output_TIME.json",
   timestamp: Time.now.to_i,
   verbose: 1,
@@ -58,6 +59,9 @@ BANNER
   end
   opts.on("--server-pre-command CMD", "Command to run before starting server") do |spc|
     OPTS[:server_pre_cmd] = spc
+  end
+  opts.on("--server-kill-match CMD", "String to match when killing processes") do |skm|
+    OPTS[:server_kill_match] = skm
   end
   opts.on("-o STRING", "--output STRING", "output filename") do |p|
     OPTS[:out_file] = p
@@ -123,18 +127,18 @@ output = {
 
 def running_server_pids
   ps_out = `ps x`
-  proc_lines = ps_out.split("\n").select { |line| line[OPTS[:server_cmd]] && !line["grep"] && !line["ab_bench"] }
+  proc_lines = ps_out.split("\n").select { |line| line[OPTS[:server_kill_matcher]] && !line["grep"] && !line["ab_bench"] }
   proc_lines.map { |line| line.split(" ", 2)[0].to_i }
 end
 
 def server_cleanup
   pids = running_server_pids
-  verbose "Found server pid(s) to SIGHUP based on server command #{OPTS[:server_cmd].inspect}: #{pids.inspect}"
+  verbose "Found server pid(s) to SIGHUP based on server command #{OPTS[:server_kill_matcher].inspect}: #{pids.inspect}"
   return if pids == []
   pids.each { |pid| Process.kill "HUP", pid }
   sleep 3 # Leave time to clean up after SIGHUP
   pids = running_server_pids
-  verbose "Found server pid(s) to SIGKILL based on server command #{OPTS[:server_cmd].inspect}: #{pids.inspect}"
+  verbose "Found server pid(s) to SIGKILL based on server command #{OPTS[:server_kill_matcher].inspect}: #{pids.inspect}"
   pids.each { |pid| Process.kill "KILL", pid }
 end
 

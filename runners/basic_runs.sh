@@ -1,14 +1,10 @@
 #!/bin/bash -l
 
-# 2.5.3
-# 2.4.5
-# 2.3.8
-# 2.2.10
-# 2.1.10
-# 2.0.0-p648
-# 2.0.0-p0 (Can't be installed on current Mac with current compiler)
+set -e
+set -x
 
-for RSB_RUBY_VERSION in ["2.0.0-p0", "2.0.0-p648", "2.1.10", "2.2.10", "2.3.8", "2.4.5", "2.5.3", "2.6.0"]; do
+for RSB_RUBY_VERSION in 2.0.0-p0 2.0.0-p648 2.1.10 2.2.10 2.3.8 2.4.5 2.5.3 2.6.0
+do
   rvm use $RSB_RUBY_VERSION
 
   export BUNDLE_GEMFILE="Gemfile.$RSB_RUBY_VERSION"
