@@ -61,7 +61,7 @@ BANNER
     OPTS[:server_pre_cmd] = spc
   end
   opts.on("--server-kill-match CMD", "String to match when killing processes") do |skm|
-    OPTS[:server_kill_match] = skm
+    OPTS[:server_kill_matcher] = skm
   end
   opts.on("-o STRING", "--output STRING", "output filename") do |p|
     OPTS[:out_file] = p
