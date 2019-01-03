@@ -92,7 +92,7 @@ unless which_ab && which_ab != ""
 end
 
 # In some options, there's a text substitution for variables like PORT and TIMESTAMP
-[:url, :server_cmd, :server_pre_cmd, :out_file].each do |opt|
+[:url, :server_cmd, :server_pre_cmd, :server_kill_matcher, :out_file].each do |opt|
   OPTS[opt].gsub! "PORT", OPTS[:port].to_s
   OPTS[opt].gsub! "TIMESTAMP", OPTS[:timestamp].to_s
 end
@@ -163,6 +163,7 @@ def verbose(str)
 end
 
 gnuplot_file = "#{OPTS[:timestamp]}_bench_rsb.gnuplot"
+csv_file = "#{OPTS[:timestamp]}_bench_rsb.csv"
 
 server_cleanup # make sure the server isn't running already
 begin
