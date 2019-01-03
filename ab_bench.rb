@@ -14,7 +14,7 @@ OPTS = {
   url: "http://127.0.0.1:PORT/simple_bench/static",
   server_pre_cmd: "bundle exec rake db:migrate",
   server_cmd: "rackup -p PORT",
-  server_kill_matcher: "rackup"
+  server_kill_matcher: "rackup",
   out_file: "rsb_output_TIME.json",
   timestamp: Time.now.to_i,
   verbose: 1,
