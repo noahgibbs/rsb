@@ -1,0 +1,10 @@
+
+## On Mac
+
+If you have pip:
+
+    pip install locustio
+
+With homebrew, this may be:
+
+    pip3 install locustio
