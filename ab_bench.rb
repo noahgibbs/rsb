@@ -87,7 +87,7 @@ if leftover_args != []
 end
 
 which_ab = `which ab`
-unless which_ab && which_ab != ""
+unless ApacheBenchClient.installed?
     raise "No ApacheBench binary in path! On Ubuntu, sudo apt-get install apache2-utils."
 end
 
@@ -106,18 +106,7 @@ important_env_vars.each { |var| env_hash["env-#{var}"] = ENV[var] }
 output = {
     "version" => 1, # version of output format
     "settings" => OPTS,  # command-line and environmental settings for this script
-    "environment" => {
-        "RUBY_VERSION" => RUBY_VERSION,
-        "RUBY_DESCRIPTION" => RUBY_DESCRIPTION,
-        "rvm current" => `rvm current 2>&1`.strip,
-        "repo git sha" => `cd #{__dir__} && git rev-parse HEAD`.chomp,
-        "repo status" => `cd #{__dir__} && git status`,
-        #"ec2 instance id" => `wget -q -O - http://169.254.169.254/latest/meta-data/instance-id`,
-        #"ec2 instance type" => `wget -q -O - http://169.254.169.254/latest/meta-data/instance-type`,
-        "ab_path" => which_ab,
-        "uname" => `uname -a`,
-        "dir" => Dir.pwd,
-    }.merge(env_hash),
+    "environment" => system_environment.merge(env_hash),
     "requests" => {
       "warmup" => [],
       "benchmark" => [],
@@ -126,37 +115,10 @@ output = {
     }
 }
 
-def running_server_pids
-  ps_out = `ps x`
-  proc_lines = ps_out.split("\n").select { |line| line[OPTS[:server_kill_matcher]] && !line["grep"] && !line["ab_bench"] }
-  proc_lines.map { |line| line.split(" ", 2)[0].to_i }
-end
-
-def server_cleanup
-  pids = running_server_pids
-  verbose "Found server pid(s) to SIGHUP based on server command #{OPTS[:server_kill_matcher].inspect}: #{pids.inspect}"
-  return if pids == []
-  pids.each { |pid| Process.kill "HUP", pid }
-  sleep 3 # Leave time to clean up after SIGHUP
-  pids = running_server_pids
-  verbose "Found server pid(s) to SIGKILL based on server command #{OPTS[:server_kill_matcher].inspect}: #{pids.inspect}"
-  pids.each { |pid| Process.kill "KILL", pid }
-end
-
-def start_server
-  csystem("#{OPTS[:server_cmd]} &", "Can't run server!")
-end
-
-def url_available?
-  system("curl #{OPTS[:url]}")
-end
-
-def ensure_url_available
-  100.times do
-    return true if url_available?
-    sleep 0.3
-  end
-end
+server_env = ServerEnvironment.new OPTS[:server_cmd],
+                                   server_pre_cmd: OPTS[:server_pre_cmd],
+                                   server_kill_substring: OPTS[:server_kill_matcher],
+                                   url: OPTS[:url]
 
 def verbose(str)
   puts str if OPTS[:verbose] > 0
@@ -165,18 +127,13 @@ end
 gnuplot_file = "#{OPTS[:timestamp]}_bench_rsb.gnuplot"
 csv_file = "#{OPTS[:timestamp]}_bench_rsb.csv"
 
-server_cleanup # make sure the server isn't running already
-begin
-  csystem("bundle install", "Couldn't install/verify gems for server process!")
-  csystem("#{OPTS[:server_pre_cmd]}", "Couldn't run precommand(s) (#{OPTS[:server_pre_cmd].inspect}) for server process!")
+server_env.server_cleanup # make sure the server isn't running already
 
-  raise "URL #{OPTS[:url].inspect} should not be available before the server runs!" if url_available?
+csystem("bundle install", "Couldn't install/verify gems for server process!")
 
-  puts "Starting server w/ command: #{OPTS[:server_cmd]}"
-  start_server
-  puts "Ensuring port #{OPTS[:port]} responds to curl"
-  ensure_url_available  # This may take up to 30ish seconds
+raise "URL #{OPTS[:url].inspect} should not be available before the server runs!" if server_env.url_available?
 
+server_env.with_url_available do
   puts "Starting warmup iterations"
   # Warmup iterations first
   csystem("ab -c #{OPTS[:concurrency]} -n #{OPTS[:warmup_iters]} #{OPTS[:url]}", "Couldn't run warmup iterations!")
@@ -184,9 +141,6 @@ begin
   puts "Starting real benchmark iterations"
   # Then final iterations, saved to a GNUPlot file - this may be quite large
   csystem("ab -c #{OPTS[:concurrency]} -n #{OPTS[:benchmark_iters]} -g #{gnuplot_file} #{OPTS[:url]}", "Couldn't run benchmark iterations!")
-ensure
-  puts "Cleaning up server process(es)"
-  server_cleanup # before the benchmark finishes, make sure the server is dead
 end
 
 # Now we've collected the data from ApacheBench. Time to parse the GNUplot file and rewrite to JSON.
@@ -204,6 +158,7 @@ File.open(gnuplot_file, "r") do |f|
     end
   end
 end
+
 output["requests"]["max_starttime"] = starttimes.keys.max
 output["requests"]["min_starttime"] = starttimes.keys.min
 output["requests"]["starttime_hist"] = starttimes
@@ -212,3 +167,4 @@ json_text = JSON.pretty_generate(output)
 File.open(OPTS[:out_file], "w") do |f|
   f.write json_text
 end
+File.unlink gnuplot_file
