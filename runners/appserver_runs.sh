@@ -43,11 +43,11 @@ do
   # TODO: add port number to Passenger start command or this can't figure out when the server is available
 
   cd widget_tracker
-  ../ab_bench.rb --url http://127.0.0.1:PORT/simple_bench/static -n 10000 -w 100 -c $CONCURRENCY --server-command "bundle _1.17.3_ exec passenger start -p PORT" --server-pre-command "bundle _1.17.3_ && bundle exec rake db:migrate" --server-kill-match "bin/passenger" -o ../data/rsb_rails_TIMESTAMP.json
+  ../ab_bench.rb --url http://127.0.0.1:PORT/simple_bench/static -n 10000 -w 100 -c $CONCURRENCY --server-command "bundle _1.17.3_ exec passenger start -p PORT --log-file /dev/null" --server-pre-command "bundle _1.17.3_ && bundle exec rake db:migrate" --server-kill-match "bin/passenger" -o ../data/rsb_rails_TIMESTAMP.json
   cd ..
 
   cd rack_hello_world
-  ../ab_bench.rb --url http://127.0.0.1:PORT/simple_bench/static -n 10000 -w 100 -c $CONCURRENCY --server-command "bundle _1.17.3_ exec passenger start -p PORT" --server-pre-command "bundle _1.17.3_" --server-kill-match "bin/passenger" -o ../data/rsb_rack_TIMESTAMP.json
+  ../ab_bench.rb --url http://127.0.0.1:PORT/simple_bench/static -n 10000 -w 100 -c $CONCURRENCY --server-command "bundle _1.17.3_ exec passenger start -p PORT --log-file /dev/null" --server-pre-command "bundle _1.17.3_" --server-kill-match "bin/passenger" -o ../data/rsb_rack_TIMESTAMP.json
   cd ..
 
   for RSB_APPSERVER in unicorn thin
