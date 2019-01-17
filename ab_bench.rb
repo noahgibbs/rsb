@@ -13,7 +13,7 @@ OPTS = {
   port: 4323,
   concurrency: 1,
   url: "http://127.0.0.1:PORT/simple_bench/static",
-  server_pre_cmd: "bundle exec rake db:migrate",
+  server_pre_cmd: "bundle install && bundle exec rake db:migrate",
   server_cmd: "rackup -p PORT",
   server_kill_matcher: "rackup",
   out_file: "rsb_output_TIME.json",
@@ -129,7 +129,7 @@ csv_file = "#{OPTS[:timestamp]}_bench_rsb.csv"
 
 server_env.server_cleanup # make sure the server isn't running already
 
-csystem("bundle install", "Couldn't install/verify gems for server process!")
+#csystem("bundle install", "Couldn't install/verify gems for server process!")
 
 raise "URL #{OPTS[:url].inspect} should not be available before the server runs!" if server_env.url_available?
 
