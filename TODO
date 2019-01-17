@@ -11,8 +11,11 @@
 * App server - is WEBRick making a difference here?
 * Number of warmup iterations
 * Concurrency of requests
-* ApacheBench vs RestClient vs benchmark-ips vs others?
 * JRuby, maybe others like TruffleRuby or Rubinius
+
+### Load Testers
+
+* ApacheBench vs RestClient vs benchmark-ips vs others?
 * ApacheBench with -k option for HTTP keepalive, multiple requests/connection
 * Try out Locust? https://locust.io
 * Try out Ruby-JMeter gem? https://github.com/flood-io/ruby-jmeter / https://flood.io/blog/load-testing-a-restful-api-with-ruby-jmeter/
