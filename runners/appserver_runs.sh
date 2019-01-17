@@ -17,7 +17,7 @@ do
 
   # Rails: migrate as precommand, use widget_tracker dir
   cd widget_tracker
-  ../ab_bench.rb --url http://127.0.0.1:PORT/simple_bench/static -n 10000 -w 100 -c $CONCURRENCY --server-command "bundle _1.17.3_ exec rails server -p PORT" --server-pre-command "bundle _1.17.3_ && bundle _1.17.3_ exec rake db:migrate" --server-kill-match "bundle _1.17.3_ exec rails server" -o ../data/rsb_rails_TIMESTAMP.json
+  ../ab_bench.rb --url http://127.0.0.1:PORT/simple_bench/static -n 10000 -w 100 -c $CONCURRENCY --server-command "bundle _1.17.3_ exec rails server -p PORT" --server-pre-command "bundle _1.17.3_ && bundle _1.17.3_ exec rake db:migrate" --server-kill-match "rails server" -o ../data/rsb_rails_TIMESTAMP.json
   cd ..
 
   # Rack: no precommand, use rack_hello_world dir
