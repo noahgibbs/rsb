@@ -13,11 +13,11 @@ do
 
   # Rails: migrate as precommand, use widget_tracker dir
   cd widget_tracker
-  ../ab_bench.rb --url http://127.0.0.1:PORT/simple_bench/static -n 10000 -w 100 --server-command "rails server -p PORT" --server-pre-command "bundle exec rake db:migrate" --server-kill-match "rails server" -o ../data/rsb_rails_TIMESTAMP.json
+  ../ab_bench.rb --url http://127.0.0.1:PORT/simple_bench/static -n 10000 -w 100 --server-command "bundle _1.17.3_ exec rails server -p PORT" --server-pre-command "bundle _1.17.3_ && bundle _1.17.3_ exec rake db:migrate" --server-kill-match "rails server" -o ../data/rsb_rails_TIMESTAMP.json
   cd ..
 
   # Rack: no precommand, use rack_hello_world dir
   cd rack_hello_world
-  ../ab_bench.rb --url http://127.0.0.1:PORT/simple_bench/static -n 10000 -w 100 --server-command "rackup -p PORT" --server-pre-command "echo Skip..." --server-kill-match "rackup" -o ../data/rsb_rack_TIMESTAMP.json
+  ../ab_bench.rb --url http://127.0.0.1:PORT/simple_bench/static -n 10000 -w 100 --server-command "bundle _1.17.3_ && bundle _1.17.3_ exec rackup -p PORT" --server-pre-command "bundle _1.17.3_" --server-kill-match "rackup" -o ../data/rsb_rack_TIMESTAMP.json
   cd ..
 done
