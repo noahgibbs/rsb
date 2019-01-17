@@ -143,7 +143,7 @@ server_env.with_url_available do
   csystem("ab -c #{OPTS[:concurrency]} -n #{OPTS[:benchmark_iters]} -g #{gnuplot_file} #{OPTS[:url]}", "Couldn't run benchmark iterations!")
 end
 
-raise "URL #{OPTS[:url].inspect} should not be available after the kill command (OPTS[:server_kill_substring])!" if server_env.url_available?
+raise "URL #{OPTS[:url].inspect} should not be available after the kill command (#{OPTS[:server_kill_substring]})!" if server_env.url_available?
 
 # Now we've collected the data from ApacheBench. Time to parse the GNUplot file and rewrite to JSON.
 starttimes = Hash.new(0)
