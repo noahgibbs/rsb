@@ -4,3 +4,7 @@ scratch_*.rb
 *_bench_rsb.gnuplot
 **/rsb_rack_*.json
 **/rsb_rails_*.json
+rack_hello_world/passenger.*.log
+rack_hello_world/passenger.*.pid*
+widget_tracker/passenger.*.log
+widget_tracker/passenger.*.pid*
