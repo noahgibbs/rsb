@@ -3,7 +3,7 @@
 set -e
 set -x
 
-for CONC in 1 2 3 4 5 6
+for CONC in 6 5 4 3 2 1
 do
     export CONCURRENCY=$CONC
     ./runners/appserver_runs.sh
