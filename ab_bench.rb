@@ -16,6 +16,7 @@ OPTS = {
   server_pre_cmd: "bundle install && bundle exec rake db:migrate",
   server_cmd: "rackup -p PORT",
   server_kill_matcher: "rackup",
+  server_kill_command: nil,
   out_file: "rsb_output_TIME.json",
   timestamp: Time.now.to_i,
   verbose: 1,
@@ -63,6 +64,11 @@ BANNER
   end
   opts.on("--server-kill-match CMD", "String to match when killing processes") do |skm|
     OPTS[:server_kill_matcher] = skm
+    OPTS[:server_kill_command] = nil
+  end
+  opts.on("--server-kill-command CMD", "String to match when killing processes") do |skc|
+    OPTS[:server_kill_command] = skc
+    OPTS[:server_kill_matcher] = nil
   end
   opts.on("-o STRING", "--output STRING", "output filename") do |p|
     OPTS[:out_file] = p

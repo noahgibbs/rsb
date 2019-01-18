@@ -30,13 +30,18 @@ module BenchLib
   end
 
   class ServerEnvironment
-    def initialize(server_start_cmd = "rackup", server_pre_cmd: "echo Skipping", server_kill_substring: "rackup", url: "http://localhost:3000")
+    def initialize(server_start_cmd = "rackup", server_pre_cmd: "echo Skipping", server_kill_substring: "rackup", server_kill_command: nil, url: "http://localhost:3000")
       @server_start_cmd = server_start_cmd
       @server_pre_cmd = server_pre_cmd
       @server_kill_substring = server_kill_substring
+      @server_kill_command = server_kill_command
+      if @server_kill_substring && @server_kill_command
+        raise "Can't supply both server kill command and server kill substring!"
+      end
       @url = url
     end
 
+    # Note: this only makes sense if we received @server_kill_substring, not @server_kill_command
     def running_server_pids
       ps_out = `ps x`
       proc_lines = ps_out.split("\n").select { |line| line[@server_kill_substring] && !line["grep"] && !line["ab_bench"] }
@@ -44,6 +49,9 @@ module BenchLib
     end
 
     def server_cleanup
+      if @server_kill_command
+        return csystem(@server_kill_command, "Failure when running server kill command!")
+      end
       pids = running_server_pids
       return if pids == []
       pids.each { |pid| Process.kill "HUP", pid }
