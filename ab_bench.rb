@@ -125,6 +125,7 @@ output = {
 server_env = ServerEnvironment.new OPTS[:server_cmd],
                                    server_pre_cmd: OPTS[:server_pre_cmd],
                                    server_kill_substring: OPTS[:server_kill_matcher],
+                                   server_kill_command: OPTS[:server_kill_command],
                                    url: OPTS[:url]
 
 def verbose(str)
@@ -134,7 +135,9 @@ end
 gnuplot_file = "#{OPTS[:timestamp]}_bench_rsb.gnuplot"
 csv_file = "#{OPTS[:timestamp]}_bench_rsb.csv"
 
-server_env.server_cleanup # make sure the server isn't running already
+if OPTS[:server_kill_matcher]
+  server_env.server_cleanup # make sure the server isn't running already - *if* we can check easily without running a kill command
+end
 
 #csystem("bundle install", "Couldn't install/verify gems for server process!")
 
