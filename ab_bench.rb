@@ -98,7 +98,8 @@ unless ApacheBenchClient.installed?
 end
 
 # In some options, there's a text substitution for variables like PORT and TIMESTAMP
-[:url, :server_cmd, :server_pre_cmd, :server_kill_matcher, :out_file].each do |opt|
+[:url, :server_cmd, :server_pre_cmd, :server_kill_matcher, :server_kill_command, :out_file].each do |opt|
+  next if OPTS[opt].nil?
   OPTS[opt].gsub! "PORT", OPTS[:port].to_s
   OPTS[opt].gsub! "TIMESTAMP", OPTS[:timestamp].to_s
 end
