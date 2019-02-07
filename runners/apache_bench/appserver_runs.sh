@@ -3,7 +3,7 @@
 set -e
 set -x
 
-export AB_BENCH=${AB_BENCH:-../../ab_bench.rb}
+export AB_BENCH=${AB_BENCH:-../ab_bench.rb}
 
 # Pick a concurrency level here
 export CONCURRENCY=${CONCURRENCY:-1}
