@@ -23,18 +23,18 @@ module BenchLib
         "repo status" => `cd #{__dir__} && git status`,
         #"ec2 instance id" => `wget -q -O - http://169.254.169.254/latest/meta-data/instance-id`,
         #"ec2 instance type" => `wget -q -O - http://169.254.169.254/latest/meta-data/instance-type`,
-        "ab_path" => `which ab`,
         "uname" => `uname -a`,
         "dir" => Dir.pwd,
     }
   end
 
   class ServerEnvironment
-    def initialize(server_start_cmd = "rackup", server_pre_cmd: "echo Skipping", server_kill_substring: "rackup", server_kill_command: nil, url: "http://localhost:3000")
+    def initialize(server_start_cmd = "rackup", server_pre_cmd: "echo Skipping", server_kill_substring: "rackup", server_kill_command: nil, self_name: "ab_bench", url: "http://localhost:3000")
       @server_start_cmd = server_start_cmd
       @server_pre_cmd = server_pre_cmd
       @server_kill_substring = server_kill_substring
       @server_kill_command = server_kill_command
+      @self_name = self_name
       if @server_kill_substring && @server_kill_command
         raise "Can't supply both server kill command and server kill substring!"
       end
@@ -44,7 +44,7 @@ module BenchLib
     # Note: this only makes sense if we received @server_kill_substring, not @server_kill_command
     def running_server_pids
       ps_out = `ps x`
-      proc_lines = ps_out.split("\n").select { |line| line[@server_kill_substring] && !line["grep"] && !line["ab_bench"] }
+      proc_lines = ps_out.split("\n").select { |line| line[@server_kill_substring] && !line["grep"] && !line[@self_name] }
       proc_lines.map { |line| line.split(" ", 2)[0].to_i }
     end
 

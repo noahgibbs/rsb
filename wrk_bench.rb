@@ -115,6 +115,7 @@ env_vars = ENV.keys
 important_env_vars = ["LD_PRELOAD"] + env_vars.select { |name| name.downcase["ruby"] || name.downcase["gem"] || name.downcase["rsb"] }
 env_hash = {}
 important_env_vars.each { |var| env_hash["env-#{var}"] = ENV[var] }
+env_hash["wrk_path"] = `which wrk`
 
 # Information about the host we're running on
 output = {
@@ -133,6 +134,7 @@ server_env = ServerEnvironment.new OPTS[:server_cmd],
                                    server_pre_cmd: OPTS[:server_pre_cmd],
                                    server_kill_substring: OPTS[:server_kill_matcher],
                                    server_kill_command: OPTS[:server_kill_command],
+                                   self_name: "wrk_bench",
                                    url: OPTS[:url]
 
 def verbose(str)
@@ -146,11 +148,11 @@ end
 raise "URL #{OPTS[:url].inspect} should not be available before the server runs!" if server_env.url_available?
 
 server_env.with_url_available do
-  puts "Starting warmup iterations"
+  verbose "Starting warmup iterations"
   # Warmup iterations first
   csystem("#{OPTS[:wrk_binary]} -t#{OPTS[:concurrency]} -c#{OPTS[:wrk_connections]} -d#{OPTS[:warmup_iters]}s --latency #{OPTS[:url]} > warmup_output_#{OPTS[:timestamp]}.txt", "Couldn't run warmup iterations!")
 
-  puts "Starting real benchmark iterations"
+  verbose "Starting real benchmark iterations"
   csystem("#{OPTS[:wrk_binary]} -t#{OPTS[:concurrency]} -c#{OPTS[:wrk_connections]} -d#{OPTS[:benchmark_iters]}s --latency #{OPTS[:url]} > benchmark_output_#{OPTS[:timestamp]}.txt", "Couldn't run warmup iterations!")
 end
 
