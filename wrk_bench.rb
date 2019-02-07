@@ -19,6 +19,7 @@ OPTS = {
   server_cmd: "rackup -p PORT",
   server_kill_matcher: "rackup",
   server_kill_command: nil,
+  script_location: "./final_report.lua"
   out_file: "rsb_output_TIME.json",
   timestamp: Time.now.to_i,
   verbose: 1,
@@ -60,6 +61,9 @@ BANNER
   end
   opts.on("--wrk-path PATH", "path to binary for wg/wrk benchmarking program") do |p|
     OPTS[:wrk_binary] = p
+  end
+  opts.on("--script-location PATH", "Path to reporting Lua script") do |p|
+    OPTS[:script_location] = p
   end
   opts.on("--server-command CMD", "Command to run server (and check process list for running server)") do |sc|
     OPTS[:server_cmd] = sc
@@ -150,10 +154,10 @@ raise "URL #{OPTS[:url].inspect} should not be available before the server runs!
 server_env.with_url_available do
   verbose "Starting warmup iterations"
   # Warmup iterations first
-  csystem("#{OPTS[:wrk_binary]} -t#{OPTS[:concurrency]} -c#{OPTS[:wrk_connections]} -d#{OPTS[:warmup_iters]}s --latency #{OPTS[:url]} > warmup_output_#{OPTS[:timestamp]}.txt", "Couldn't run warmup iterations!")
+  csystem("#{OPTS[:wrk_binary]} -t#{OPTS[:concurrency]} -c#{OPTS[:wrk_connections]} -d#{OPTS[:warmup_seconds]}s -s#{OPTS[:script_location]} --latency #{OPTS[:url]} > warmup_output_#{OPTS[:timestamp]}.txt", "Couldn't run warmup iterations!")
 
   verbose "Starting real benchmark iterations"
-  csystem("#{OPTS[:wrk_binary]} -t#{OPTS[:concurrency]} -c#{OPTS[:wrk_connections]} -d#{OPTS[:benchmark_iters]}s --latency #{OPTS[:url]} > benchmark_output_#{OPTS[:timestamp]}.txt", "Couldn't run warmup iterations!")
+  csystem("#{OPTS[:wrk_binary]} -t#{OPTS[:concurrency]} -c#{OPTS[:wrk_connections]} -d#{OPTS[:benchmark_seconds]}s -s#{OPTS[:script_location]} --latency #{OPTS[:url]} > benchmark_output_#{OPTS[:timestamp]}.txt", "Couldn't run warmup iterations!")
 end
 
 raise "URL #{OPTS[:url].inspect} should not be available after the kill command (#{OPTS[:server_kill_matcher].inspect})!" if server_env.url_available?
