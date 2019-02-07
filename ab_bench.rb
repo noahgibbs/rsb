@@ -24,7 +24,7 @@ OPTS = {
 
 leftover_args = OptionParser.new do |opts|
   opts.banner = <<BANNER
-Usage: ruby rails_bench.rb [options]
+Usage: ruby ab_bench.rb [options]
 
 The first instance of the following strings will be replaced automatically if present
 in URLs, output files or commands:
@@ -92,7 +92,6 @@ if leftover_args != []
     raise "Illegal or unexpected extra arguments: #{leftover_args.inspect}"
 end
 
-which_ab = `which ab`
 unless ApacheBenchClient.installed?
     raise "No ApacheBench binary in path! On Ubuntu, sudo apt-get install apache2-utils."
 end
