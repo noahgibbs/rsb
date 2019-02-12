@@ -165,15 +165,16 @@ def parse_wrk_into_stats(str)
 
   if second =~ /^Summary Errors: connect:([0-9]+),read:([0-9]+),write:([0-9]+),status:([0-9]+),timeout:([0-9]+)$/
     out[:errors] = {
-      connect: $1,
-      read: $2,
-      write: $3,
-      status: $4,
-      timeout: $5,
+      connect: $1.to_i,
+      read: $2.to_i,
+      write: $3.to_i,
+      status: $4.to_i,
+      timeout: $5.to_i,
     }
   else
     raise "Could not locate error data!"
   end
+  out
 end
 
 if OPTS[:server_kill_matcher]
