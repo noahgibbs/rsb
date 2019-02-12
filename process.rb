@@ -3,7 +3,7 @@
 require "json"
 require "optparse"
 
-cohorts_by = "rvm current,warmup_iters,server_cmd,url"
+cohorts_by = "rvm current,warmup_seconds,benchmark_seconds,server_cmd,url"
 input_glob = "rsb_*.json"
 
 OptionParser.new do |opts|
@@ -21,6 +21,7 @@ OUTPUT_FILE = "process_output.json"
 cohort_indices = cohorts_by.strip.split(",")
 
 req_time_by_cohort = {}
+req_rates_by_cohort = {}
 throughput_by_cohort = {}
 
 INPUT_FILES = Dir[input_glob]
@@ -35,6 +36,18 @@ process_output = {
     :cohort => {},
   },
 }
+
+# wrk encodes its arrays as (value, count) pairs, which get
+# dumped into a long single array by wrk_bench. This method
+# reencodes as simple Ruby arrays.
+def run_length_array_to_simple_array(input)
+  out = []
+
+  input.each_slice(2) do |val, count|
+    out.concat([val] * count)
+  end
+  out
+end
 
 INPUT_FILES.each do |f|
   begin
@@ -60,24 +73,32 @@ INPUT_FILES.each do |f|
   cohort = cohort_parts.join(",")
 
   # Reject incorrect versions of data format
-  if d["version"] != 1
+  if d["version"] != "wrk:2"
     raise "Unrecognized data version #{d["version"].inspect} in JSON file #{f.inspect}!"
   end
 
-  duration = d["requests"]["max_starttime"] - d["requests"]["min_starttime"]
-  if duration < 0.00001
-    STDERR.puts "Problem with duration (#{duration.inspect}), file #{f.inspect}, cohort #{cohort.inspect}"
-    # If this happens, it'll totally blow out the accuracy. Need more precision in time and/or longer requests.
-    duration = 0.001
+  latencies = run_length_array_to_simple_array d["requests"]["benchmark"]["latencies"]
+  req_rates = run_length_array_to_simple_array d["requests"]["benchmark"]["req_per_sec"]
+  errors = d["requests"]["benchmark"]["errors"]
+
+  if errors.values.any? { |e| e > 0 }
+    raise "Error rate > 0! Do we reject this input? #{errors.inspect}"
   end
+
+  duration = d["settings"]["benchmark_seconds"]
+  if duration.nil? || duration < 0.00001
+    raise "Problem with duration (#{duration.inspect}), file #{f.inspect}, cohort #{cohort.inspect}"
+  end
+
   req_time_by_cohort[cohort] ||= []
-  req_time_by_cohort[cohort].concat d["requests"]["benchmark"]
+  req_time_by_cohort[cohort].concat latencies
+
+  req_rates_by_cohort[cohort] ||= []
+  req_rates_by_cohort[cohort].concat req_rates
 
   throughput_by_cohort[cohort] ||= []
-  throughput_by_cohort[cohort].push (d["requests"]["benchmark"].size / duration)
+  throughput_by_cohort[cohort].push (latencies.size / duration)
 end
-
-# TODO: replace all this bespoke logic with descriptive_statistics gem
 
 def percentile(list, pct)
   len = list.length
@@ -113,22 +134,36 @@ def array_variance(arr)
 end
 
 req_time_by_cohort.keys.sort.each do |cohort|
-  data = req_time_by_cohort[cohort]
-  data.sort! # Sort request times lowest-to-highest for use with percentile()
+  latencies = req_time_by_cohort[cohort].map { |num| num / 1_000_000.0 }.sort
+  rates = req_rates_by_cohort[cohort].sort
   throughputs = throughput_by_cohort[cohort].sort
 
   cohort_printable = cohort_indices.zip(cohort.split(",")).map { |a, b| "#{a}: #{b}" }.join(", ")
-  print "=====\nCohort: #{cohort_printable}, # of data points: #{data.size} http requests\n"
+  print "=====\nCohort: #{cohort_printable}, # of requests: #{latencies.size} http requests\n"
+
   process_output[:processed][:cohort][cohort] = {
-    data_points: data.size,
+    latencies: latencies,
+    request_rates: rates,
     request_percentiles: {},
+    rate_percentiles: {},
     throughputs: throughputs,
   }
-  print "--\n  Request completion times:\n"
+  print "--\n  Request latencies:\n"
   (0..100).each do |p|
-    process_output[:processed][:cohort][cohort][:request_percentiles][p.to_s] = percentile(data, p)
-    print "  #{"%2d" % p}%ile: #{percentile(data, p)}\n"
+    process_output[:processed][:cohort][cohort][:request_percentiles][p.to_s] = percentile(latencies, p)
+    print "  #{"%2d" % p}%ile: #{percentile(latencies, p)}\n" if p % 5 == 0
   end
+
+  print "--\n  Requests/Second Rates:\n"
+  (0..20).each do |i|
+    p = i * 5
+    process_output[:processed][:cohort][cohort][:rate_percentiles][p.to_s] = percentile(rates, p)
+    print "  #{"%2d" % p}%ile: #{percentile(rates, p)}\n"
+  end
+  print "  Mean: #{array_mean(rates).inspect} Median: #{percentile(rates, 50).inspect} Variance: #{array_variance(rates).inspect}\n"
+  process_output[:processed][:cohort][cohort][:rate_mean] = array_mean(rates)
+  process_output[:processed][:cohort][cohort][:rate_median] = percentile(rates, 50)
+  process_output[:processed][:cohort][cohort][:rate_variance] = array_variance(rates)
 
   print "--\n  Throughput in reqs/sec for each full run:\n"
   print "  Mean: #{array_mean(throughputs).inspect} Median: #{percentile(throughputs, 50).inspect} Variance: #{array_variance(throughputs).inspect}\n"
