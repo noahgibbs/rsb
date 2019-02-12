@@ -123,7 +123,7 @@ env_hash["wrk_path"] = `which wrk`
 
 # Information about the host we're running on
 output = {
-    "version" => 1, # version of output format
+    "version" => "wrk:2", # version of output format
     "settings" => OPTS,  # command-line and environmental settings for this script
     "environment" => system_environment.merge(env_hash),
     "requests" => {
@@ -152,18 +152,17 @@ def parse_wrk_into_stats(str)
   first, second = str.split("-- Final Report")
 
   if second =~ /^Latencies: \[(.*)\]$/
-    out[:latencies] = $1.split(",").map(&:to_i)
+    out[:latencies] = $1.split(",").map(&:to_i).pop # There's a final comma that shows up as a zero
   else
     raise "Could not locate latency data!"
   end
   out[:latencies].pop if out[:latencies][-1] == 0
 
   if second =~ /^Per-Thread ReqsPerSec: \[(.*)\]$/
-    out[:req_per_sec] = $1.split(",").map(&:to_i)
+    out[:req_per_sec] = $1.split(",").map(&:to_i).pop # There's a final comma that shows up as a zero
   else
     raise "Could not locate requests/sec data!"
   end
-  out[:req_per_sec].pop if out[:req_per_sec][-1] == 0
 
   if second =~ /^Summary Errors: connect:([0-9]+),read:([0-9]+),write:([0-9]+),status:([0-9]+),timeout:([0-9]+)$/
     out[:errors] = {
