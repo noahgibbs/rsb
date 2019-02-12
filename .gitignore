@@ -8,3 +8,5 @@ rack_hello_world/passenger.*.log
 rack_hello_world/passenger.*.pid*
 widget_tracker/passenger.*.log
 widget_tracker/passenger.*.pid*
+**/benchmark_output_*.txt
+**/warmup_output_*.txt
