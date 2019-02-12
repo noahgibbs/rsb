@@ -10,3 +10,4 @@ widget_tracker/passenger.*.log
 widget_tracker/passenger.*.pid*
 **/benchmark_output_*.txt
 **/warmup_output_*.txt
+**/process_output.json
