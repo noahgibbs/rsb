@@ -1,14 +1,12 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    descriptive_statistics (2.5.1)
     psych (2.2.4)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
-  descriptive_statistics
   psych (= 2.2.4)
 
 BUNDLED WITH
