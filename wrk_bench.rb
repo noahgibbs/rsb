@@ -157,7 +157,7 @@ def parse_wrk_into_stats(str)
     raise "Could not locate latency data!"
   end
 
-  if second =~ /^Requests: \[(.*)\]$/
+  if second =~ /^Per-Thread ReqsPerSec: \[(.*)\]$/
     out[:req_per_sec] = $1.split(",").map(&:to_i)
   else
     raise "Could not locate requests/sec data!"

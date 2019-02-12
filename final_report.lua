@@ -11,7 +11,7 @@ done = function(summary, latency, requests)
    end
    io.write("]\n\n")
 
-   io.write("Per-Thread Reqs/Sec: [")
+   io.write("Per-Thread ReqsPerSec: [")
    for counter=1,#requests do
      io.write(string.format("%g, ", requests(counter)))
    end
