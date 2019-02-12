@@ -127,8 +127,8 @@ output = {
     "settings" => OPTS,  # command-line and environmental settings for this script
     "environment" => system_environment.merge(env_hash),
     "requests" => {
-      "warmup" => [],
-      "benchmark" => [],
+      "warmup" => {},
+      "benchmark" => {},
       #"benchmark_min_starttime"
       #"benchmark_max_starttime"
     }
@@ -143,6 +143,37 @@ server_env = ServerEnvironment.new OPTS[:server_cmd],
 
 def verbose(str)
   puts str if OPTS[:verbose] > 0
+end
+
+def parse_wrk_into_stats(str)
+  out = {}
+
+  # The output is human-readable text, followed by the output of final_report.lua
+  first, second = str.split("-- Final Report")
+
+  if second =~ /^Latencies: \[(.*)\]$/
+    out[:latencies] = $1.split(",").map(&:to_i)
+  else
+    raise "Could not locate latency data!"
+  end
+
+  if second =~ /^Requests: \[(.*)\]$/
+    out[:req_per_sec] = $1.split(",").map(&:to_i)
+  else
+    raise "Could not locate requests/sec data!"
+  end
+
+  if second =~ /^Summary Errors: connect:([0-9]+),read:([0-9]+),write:([0-9]+),status:([0-9]+),timeout:([0-9]+)$/
+    out[:errors] = {
+      connect: $1,
+      read: $2,
+      write: $3,
+      status: $4,
+      timeout: $5,
+    }
+  else
+    raise "Could not locate error data!"
+  end
 end
 
 if OPTS[:server_kill_matcher]
@@ -164,9 +195,11 @@ end
 raise "URL #{OPTS[:url].inspect} should not be available after the kill command (#{OPTS[:server_kill_matcher].inspect})!" if server_env.url_available?
 
 # Read wrk's output, parse into our own output array
+output["requests"]["warmup"] = parse_wrk_into_stats(File.read "warmup_output_#{OPTS[:timestamp]}.txt")
+output["requests"]["benchmark"] = parse_wrk_into_stats(File.read "benchmark_output_#{OPTS[:timestamp]}.txt")
 
-#File.unlink "warmup_output_#{OPTS[:timestamp]}.txt"
-#File.unlink "benchmark_output_#{OPTS[:timestamp]}.txt"
+File.unlink "warmup_output_#{OPTS[:timestamp]}.txt"
+File.unlink "benchmark_output_#{OPTS[:timestamp]}.txt"
 
 json_text = JSON.pretty_generate(output)
 File.open(OPTS[:out_file], "w") do |f|
