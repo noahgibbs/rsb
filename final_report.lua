@@ -8,14 +8,14 @@ done = function(summary, latency, requests)
    -- I don't think wrk expects us to ever just dump this array - I can't find a sane way to do it.'
    for counter=1,#latency do
      value, count = latency(counter)
-     io.write(string.format("%d,%d ", value, count))
+     io.write(string.format("%d,%d, ", value, count))
    end
    io.write("]\n\n")
 
    io.write("Per-Thread ReqsPerSec: [")
    for counter=1,#requests do
      value, count = requests(counter)
-     io.write(string.format("%d,%d ", value, count))
+     io.write(string.format("%d,%d, ", value, count))
    end
    io.write("]\n\n")
 
