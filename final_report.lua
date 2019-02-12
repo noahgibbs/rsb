@@ -7,13 +7,15 @@ done = function(summary, latency, requests)
    -- This horrible loop is quadratic in the number of latencies, because of how wrk's bindings work.
    -- I don't think wrk expects us to ever just dump this array - I can't find a sane way to do it.'
    for counter=1,#latency do
-     io.write(string.format("%g, ", latency(counter)))
+     value, count = latency(counter)
+     io.write(string.format("%d,%d ", value, count))
    end
    io.write("]\n\n")
 
    io.write("Per-Thread ReqsPerSec: [")
    for counter=1,#requests do
-     io.write(string.format("%g, ", requests(counter)))
+     value, count = requests(counter)
+     io.write(string.format("%d,%d ", value, count))
    end
    io.write("]\n\n")
 
