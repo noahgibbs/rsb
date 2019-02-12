@@ -152,14 +152,14 @@ def parse_wrk_into_stats(str)
   first, second = str.split("-- Final Report")
 
   if second =~ /^Latencies: \[(.*)\]$/
-    out[:latencies] = $1.split(",").map(&:to_i).pop # There's a final comma that shows up as a zero
+    out[:latencies] = $1.split(",")[0..-2].map(&:to_i) # There's a final comma that shows up as a blank
   else
     raise "Could not locate latency data!"
   end
   out[:latencies].pop if out[:latencies][-1] == 0
 
   if second =~ /^Per-Thread ReqsPerSec: \[(.*)\]$/
-    out[:req_per_sec] = $1.split(",").map(&:to_i).pop # There's a final comma that shows up as a zero
+    out[:req_per_sec] = $1.split(",")[0..-2].map(&:to_i)# There's a final comma that shows up as a blank
   else
     raise "Could not locate requests/sec data!"
   end
