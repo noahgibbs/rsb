@@ -1,21 +1,10 @@
 ## Features We Could Really Use
 
-* Check for 'ab' binary and if not present, install or complain
-* Notice things like return code for ApacheBench: https://stackoverflow.com/questions/31789614/how-to-verify-ab-responses
-* More host data collection - fold output samples into a file tagged with platform, hostname, etc.
-* Data processing from that output format - variance, percentiles, etc.
-* Packer build for image, for preinstalled Nokogiri on all Ruby versions, etc.
+* Packer build for image, preinstall gems on all Ruby versions
 
 ## Things to Productively Benchmark
 
-* App server - is WEBRick making a difference here?
+* App server
 * Number of warmup iterations
 * Concurrency of requests
 * JRuby, maybe others like TruffleRuby or Rubinius
-
-### Load Testers
-
-* ApacheBench vs RestClient vs benchmark-ips vs others?
-* ApacheBench with -k option for HTTP keepalive, multiple requests/connection
-* Try out Locust? https://locust.io
-* Try out Ruby-JMeter gem? https://github.com/flood-io/ruby-jmeter / https://flood.io/blog/load-testing-a-restful-api-with-ruby-jmeter/
