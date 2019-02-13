@@ -42,8 +42,6 @@ do
   # Passenger
   export RSB_EXTRA_GEMFILES=Gemfile.passenger
 
-  # TODO: add port number to Passenger start command or this can't figure out when the server is available
-
   cd widget_tracker
   $AB_BENCH --url http://127.0.0.1:PORT/simple_bench/static -n 10000 -w 100 -c $CONCURRENCY --server-command "bundle _1.17.3_ exec passenger start -p PORT --log-file /dev/null" --server-pre-command "bundle _1.17.3_ && bundle exec rake db:migrate" --server-kill-command "bundle _1.17.3_ exec passenger stop -p 4323" -o ../data/rsb_rails_TIMESTAMP.json
   cd ..

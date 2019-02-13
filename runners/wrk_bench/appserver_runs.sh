@@ -43,14 +43,12 @@ do
   # Passenger
   export RSB_EXTRA_GEMFILES=Gemfile.passenger
 
-  # TODO: add port number to Passenger start command or this can't figure out when the server is available
-
   cd widget_tracker
-  $WRK_BENCH --wrk-path $WRK --url http://127.0.0.1:PORT/simple_bench/static -n 180 -w 20 -c $CONCURRENCY --server-command "bundle _1.17.3_ exec passenger start -p PORT --log-file /dev/null" --server-pre-command "bundle _1.17.3_ && bundle exec rake db:migrate" --server-kill-command "bundle _1.17.3_ exec passenger stop -p 4323" -o ../data/rsb_rails_TIMESTAMP.json
+  $WRK_BENCH --wrk-path $WRK --url http://127.0.0.1:PORT/simple_bench/static -n 180 -w 20 -c $CONCURRENCY --server-command "bundle _1.17.3_ exec passenger start -p PORT --log-level 2" --server-pre-command "bundle _1.17.3_ && bundle exec rake db:migrate" --server-kill-command "bundle _1.17.3_ exec passenger stop -p 4323" -o ../data/rsb_rails_TIMESTAMP.json
   cd ..
 
   cd rack_hello_world
-  $WRK_BENCH --wrk-path $WRK --url http://127.0.0.1:PORT/simple_bench/static -n 180 -w 20 -c $CONCURRENCY --server-command "bundle _1.17.3_ exec passenger start -p PORT --log-file /dev/null" --server-pre-command "bundle _1.17.3_" --server-kill-command "bundle _1.17.3_ exec passenger stop -p 4323" -o ../data/rsb_rack_TIMESTAMP.json
+  $WRK_BENCH --wrk-path $WRK --url http://127.0.0.1:PORT/simple_bench/static -n 180 -w 20 -c $CONCURRENCY --server-command "bundle _1.17.3_ exec passenger start -p PORT --log-level 2" --server-pre-command "bundle _1.17.3_" --server-kill-command "bundle _1.17.3_ exec passenger stop -p 4323" -o ../data/rsb_rack_TIMESTAMP.json
   cd ..
 
   for RSB_APPSERVER in unicorn thin
