@@ -11,7 +11,7 @@ export BUNDLE_GEMFILE="Gemfile.$RSB_RUBY_VERSION"
 export RAILS_ENV=${RSB_RACK_ENV:-production}
 export RACK_ENV=${RSB_RACK_ENV:-production}
 
-export BUNDLER_VERSION=${RSB_BUNDLER_VERSION:-}
+export BUNDLER_VERSION=${RSB_BUNDLER_VERSION:-_1.17.3_}
 
 # Rails: migrate as precommand, use widget_tracker dir
 cd widget_tracker
