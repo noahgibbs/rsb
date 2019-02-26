@@ -1,0 +1,9 @@
+source "https://rubygems.org"
+
+if ENV["RSB_EXTRA_GEMFILES"]
+  ENV["RSB_EXTRA_GEMFILES"].split(",").each do |gemfile|
+    eval_gemfile gemfile
+  end
+end
+
+gem "rack"
