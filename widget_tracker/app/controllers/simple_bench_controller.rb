@@ -3,6 +3,13 @@ class SimpleBenchController < ApplicationController
     render :text => "Static Text"
   end
 
+  def mandelbrot
+    z0 = Complex(params["x"].to_f, params["i"].to_f)
+    z = z0
+    80.times { z = z * z0 }
+    render :text => (z.abs <= 2.0 ? "in" : "out")
+  end
+
   def db
     # TBD
     render :text => "For now, static"

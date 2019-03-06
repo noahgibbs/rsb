@@ -1,13 +1,26 @@
 require "complex"
+require "rack"
 
 class SpeedTest
   ROUTES = {
     "/" => proc { [200, {"Content-Type" => "text/html"}, ["Hello World!"]] },
+    "/static" => proc { [200, {"Content-Type" => "text/html"}, ["Static Text"]] },
+    "/request" => proc { |env| r = Rack::Request.new(env); [200, {"Content-Type" => "text/html"}, ["Static Text"]] },
     "/mandelbrot" => proc { |env|
       x, i = env["QUERY_STRING"].split("&",2).map { |item| item.split("=", 2)[1].to_f }
 
       [200, {"Content-Type" => "text/html"}, [ SpeedTest.in_mandelbrot(x,i) ? "in" : "out" ]]
     },
+    "/fivehundred" => proc { raise "This raises an error!" },
+    "/delay" => proc { |env|
+      t = 0.001
+      if env["QUERY_STRING"] != nil && env["QUERY_STRING"] != ""
+        t = env["QUERY_STRING"].split("=",2)[1].to_f
+      end
+      sleep t
+      [ 200, { "Content-Type" => "text/html" }, [ "Static Text" ] ]
+    },
+    # Not yet: /db
   }
 
   def self.in_mandelbrot(x, i)
