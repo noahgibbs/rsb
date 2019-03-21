@@ -26,6 +26,19 @@ dependencies and more repeatability? Then RSB may be for you.
 
 ## Usage
 
+RSB uses a number of "runner" scripts to test different
+configurations. For most uses of RSB, you'll run one. For more
+customized uses of RSB, you'll make your own runner script.
+
+## Load Testing
+
+ApacheBench is not recommended for new uses - its reporting and
+accuracy are poor and there are bugs and edge-cases that make it hard
+to be sure you're getting what you think you are.
+
+For newer use cases, we follow Phusion.nl's recommendation for "wrk",
+a simple, powerful and accurate benchmarking program.
+
 ## TODO
 
 * Set up SQLite in-memory database
