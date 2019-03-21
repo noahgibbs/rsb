@@ -1,7 +1,0 @@
-## Ubuntu Install
-
-// https://stackoverflow.com/questions/37333339/how-to-install-latest-jmeter-in-ubuntu-15-10
-
-sudo apt-get install openjdk-7-jre-headless
-
-Download JMeter from jmeter.apache.org
