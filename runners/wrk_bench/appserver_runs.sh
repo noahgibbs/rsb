@@ -16,7 +16,12 @@ export BUNDLER_VERSION=${RSB_BUNDLER_VERSION:-_1.17.3_}
 
 
 # Server-Specific tuning
+export PASSENGER=${RSB_PASSENGER:-passenger}
 export PASSENGER_PROCESSES=${RSB_PASSENGER_PROCESSES:-10}
+
+export PASSENT=${RSB_PASSENT:-/usr/bin/passenger}
+export PASSENT_PROCESSES={RSB_PASSENT_PROCESSES:-10}
+export PASSENT_THREADS={RSB_PASSENT_THREADS:-6}
 
 # For later Puma tuning
 export PUMA_PROCESSES=${RSB_PUMA_PROCESSES:-10}
@@ -65,12 +70,26 @@ do
   export RSB_EXTRA_GEMFILES=Gemfile.passenger-tuned
 
   cd widget_tracker
-  $WRK_BENCH --wrk-path $WRK --url http://127.0.0.1:PORT/simple_bench/static -n 180 -w 20 -c $CONCURRENCY --server-command "bundle $BUNDLER_VERSION exec passenger start -p PORT --log-level 2 --max-pool-size $PASSENGER_PROCESSES --min-instances $PASSENGER_PROCESSES --engine=builtin" --server-pre-command "bundle $BUNDLER_VERSION && bundle exec rake db:migrate" --server-kill-command "bundle $BUNDLER_VERSION exec passenger stop -p 4323" -o ../data/rsb_rails_TIMESTAMP.json
+  $WRK_BENCH --wrk-path $WRK --url http://127.0.0.1:PORT/simple_bench/static -n 180 -w 20 -c $CONCURRENCY --server-command "bundle $BUNDLER_VERSION exec passenger start -p PORT --log-level 2 --max-pool-size $PASSENGER_PROCESSES --min-instances $PASSENGER_PROCESSES --engine=builtin --passenger-pre-start" --server-pre-command "bundle $BUNDLER_VERSION && bundle exec rake db:migrate" --server-kill-command "bundle $BUNDLER_VERSION exec passenger stop -p 4323" -o ../data/rsb_rails_TIMESTAMP.json
   cd ..
 
   cd rack_hello_world
-  $WRK_BENCH --wrk-path $WRK --url http://127.0.0.1:PORT/simple_bench/static -n 180 -w 20 -c $CONCURRENCY --server-command "bundle $BUNDLER_VERSION exec passenger start -p PORT --log-level 2 --max-pool-size $PASSENGER_PROCESSES --min-instances $PASSENGER_PROCESSES --engine=builtin" --server-pre-command "bundle $BUNDLER_VERSION" --server-kill-command "bundle $BUNDLER_VERSION exec passenger stop -p 4323" -o ../data/rsb_rack_TIMESTAMP.json
+  $WRK_BENCH --wrk-path $WRK --url http://127.0.0.1:PORT/simple_bench/static -n 180 -w 20 -c $CONCURRENCY --server-command "bundle $BUNDLER_VERSION exec passenger start -p PORT --log-level 2 --max-pool-size $PASSENGER_PROCESSES --min-instances $PASSENGER_PROCESSES --engine=builtin --passenger-pre-start" --server-pre-command "bundle $BUNDLER_VERSION" --server-kill-command "bundle $BUNDLER_VERSION exec passenger stop -p 4323" -o ../data/rsb_rack_TIMESTAMP.json
   cd ..
+
+  # Passenger Enterprise ("passent")
+  export RSB_EXTRA_GEMFILES=Gemfile.passent
+
+  if [! -z "$RSB_PASSENT"]
+  then
+    cd widget_tracker
+    $WRK_BENCH --wrk-path $WRK --url http://127.0.0.1:PORT/simple_bench/static -n 180 -w 20 -c $CONCURRENCY --server-command "bundle $BUNDLER_VERSION exec passenger start -p PORT --log-level 2 --max-pool-size $PASSENT_PROCESSES --min-instances $PASSENT_PROCESSES --passenger-concurrency-model thread --passenger-thread-count $PASSENT_THREADS --engine=builtin --passenger-pre-start" --server-pre-command "bundle $BUNDLER_VERSION && bundle exec rake db:migrate" --server-kill-command "bundle $BUNDLER_VERSION exec passenger stop -p 4323" -o ../data/rsb_rails_TIMESTAMP.json
+    cd ..
+
+    cd rack_hello_world
+    $WRK_BENCH --wrk-path $WRK --url http://127.0.0.1:PORT/simple_bench/static -n 180 -w 20 -c $CONCURRENCY --server-command "bundle $BUNDLER_VERSION exec passenger start -p PORT --log-level 2 --max-pool-size $PASSENGER_PROCESSES --min-instances $PASSENGER_PROCESSES --engine=builtin --passenger-pre-start" --server-pre-command "bundle $BUNDLER_VERSION" --server-kill-command "bundle $BUNDLER_VERSION exec passenger stop -p 4323" -o ../data/rsb_rack_TIMESTAMP.json
+    cd ..
+  fi
 
   for RSB_APPSERVER in unicorn thin
   do
