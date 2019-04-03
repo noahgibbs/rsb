@@ -50,7 +50,7 @@ module BenchLib
 
     def server_cleanup
       if @server_kill_command
-        return csystem(@server_kill_command, "Failure when running server kill command!")
+        return csystem(@server_kill_command, "Failure when running server kill command!", fail_ok: true)
       end
       pids = running_server_pids
       return if pids == []
