@@ -207,3 +207,6 @@ json_text = JSON.pretty_generate(output)
 File.open(OPTS[:out_file], "w") do |f|
   f.write json_text
 end
+
+puts "All data files written successfully."
+
