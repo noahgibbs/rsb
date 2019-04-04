@@ -4,7 +4,7 @@ set -e
 set -x
 
 export WRK_BENCH=${WRK_BENCH:-../wrk_bench.rb}
-export WRK=${WRK:-~/wrk/wrk}
+export WRK=${WRK:-wrk}
 
 for RSB_RUBY_VERSION in 2.0.0-p0 2.0.0-p648 2.1.10 2.2.10 2.3.8 2.4.5 2.5.3 2.6.0
 do

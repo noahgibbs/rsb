@@ -4,7 +4,7 @@ set -e
 set -x
 
 export WRK_BENCH=${WRK_BENCH:-../wrk_bench.rb}
-export WRK=${WRK:-~/wrk/wrk}
+export WRK=${WRK:-wrk}
 
 # Pick a benchmark concurrency level here, which is passed to wrk
 export CONCURRENCY=${CONCURRENCY:-1}

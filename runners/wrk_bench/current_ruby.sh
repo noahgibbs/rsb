@@ -5,7 +5,7 @@
 
 export RSB_RUBY_VERSION=${RSB_RUBY_VERSION:-`ruby -e 'puts RUBY_VERSION'`}
 export WRK_BENCH=${WRK_BENCH:-../wrk_bench.rb}
-export WRK=${WRK:-~/wrk/wrk}
+export WRK=${WRK:-wrk}
 
 export BUNDLE_GEMFILE="Gemfile.$RSB_RUBY_VERSION"
 export RAILS_ENV=${RSB_RACK_ENV:-production}
