@@ -55,7 +55,9 @@ shared_opts = {
       e = BenchmarkEnvironment.new opts
       e.run_wrk
     end
-  rescue
+  rescue RuntimeError exc
+    puts "Caught exception: #{exc.message.inspect}"
+    puts "Backtrace:\n#{exc.backtrace.join("\n")}"
     puts "Ruby #{rvm_ruby_version.inspect} failed, but we'll keep going..."
   end
 end
