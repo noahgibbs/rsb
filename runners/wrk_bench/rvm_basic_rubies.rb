@@ -45,16 +45,16 @@ shared_opts = {
       e.run_wrk
     end
 
-    rack_opts = shared_opts.merge(ruby_opts).merge({
-      url: "http://127.0.0.1:PORT/simple_bench/static",
-      server_cmd: "bundle && bundle exec rackup -p PORT",
-      server_pre_cmd: "bundle",
-      server_kill_matcher: "rackup",
-    })
-    Dir.chdir("rack_test_app") do
-      e = BenchmarkEnvironment.new rack_opts
-      e.run_wrk
-    end
+    #rack_opts = shared_opts.merge(ruby_opts).merge({
+    #  url: "http://127.0.0.1:PORT/simple_bench/static",
+    #  server_cmd: "bundle && bundle exec rackup -p PORT",
+    #  server_pre_cmd: "bundle",
+    #  server_kill_matcher: "rackup",
+    #})
+    #Dir.chdir("rack_test_app") do
+    #  e = BenchmarkEnvironment.new rack_opts
+    #  e.run_wrk
+    #end
   rescue RuntimeError => exc
     puts "Caught exception: #{exc.message.inspect}"
     puts "Backtrace:\n#{exc.backtrace.join("\n")}"
