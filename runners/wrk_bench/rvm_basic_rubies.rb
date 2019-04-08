@@ -41,7 +41,7 @@ shared_opts = {
       server_kill_matcher: "rails server",
     })
     Dir.chdir("rails_test_app") do
-      e = BenchmarkEnvironment.new opts
+      e = BenchmarkEnvironment.new rails_opts
       e.run_wrk
     end
 
@@ -52,10 +52,10 @@ shared_opts = {
       server_kill_matcher: "rackup",
     })
     Dir.chdir("rack_test_app") do
-      e = BenchmarkEnvironment.new opts
+      e = BenchmarkEnvironment.new rack_opts
       e.run_wrk
     end
-  rescue RuntimeError exc
+  rescue RuntimeError => exc
     puts "Caught exception: #{exc.message.inspect}"
     puts "Backtrace:\n#{exc.backtrace.join("\n")}"
     puts "Ruby #{rvm_ruby_version.inspect} failed, but we'll keep going..."
