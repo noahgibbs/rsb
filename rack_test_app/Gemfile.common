@@ -7,3 +7,4 @@ if ENV["RSB_EXTRA_GEMFILES"]
 end
 
 gem "rack"
+gem "rake"
