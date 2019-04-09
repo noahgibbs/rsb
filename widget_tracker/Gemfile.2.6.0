@@ -1,3 +1,0 @@
-ruby "2.6.0"
-
-eval_gemfile "Gemfile.common"

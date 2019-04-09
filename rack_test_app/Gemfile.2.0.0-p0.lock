@@ -3,6 +3,7 @@ GEM
   specs:
     psych (2.2.4)
     rack (1.6.11)
+    rake (12.3.2)
 
 PLATFORMS
   ruby
@@ -10,6 +11,7 @@ PLATFORMS
 DEPENDENCIES
   psych (= 2.2.4)
   rack
+  rake
 
 RUBY VERSION
    ruby 2.0.0p0
