@@ -24,4 +24,10 @@ class SimpleBenchController < ApplicationController
     sleep t
     render :text => "Static Text"
   end
+
+  # Keep in mind that this route only does what you think for single-process setups,
+  # not anything with workers and a master process.
+  def shutdown
+    exit 0
+  end
 end

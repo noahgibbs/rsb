@@ -21,6 +21,7 @@ class SpeedTest
       [ 200, { "Content-Type" => "text/html" }, [ "Static Text" ] ]
     },
     # Not yet: /db
+    "/shutdown" => { exit 0 },
   }
 
   def self.in_mandelbrot(x, i)
