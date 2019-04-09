@@ -80,13 +80,17 @@ module BenchLib
     end
 
     def url_available?
-      system("curl #{@url}")
+      system("curl #{@url} &>/dev/null")
     end
 
     def ensure_url_available
-      100.times do
+      100.times do |i|
         return true if url_available?
         sleep 0.3
+        if i % 30 == 0
+          # How to output this most appropriately?
+          puts "Still trying to connect..."
+        end
       end
     end
 
