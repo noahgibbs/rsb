@@ -134,7 +134,7 @@ module BenchLib
 
       # Benchmarking options
       port: 4321,
-      timestamp: Time.now.to_i,
+      timestamp: nil,
       url: "http://127.0.0.1:PORT/simple_bench/static",
       out_file: "rsb_output_TIME.json",
       verbose: 1,
@@ -153,6 +153,7 @@ module BenchLib
       SETTINGS_DEFAULTS.each do |key, val|
         settings[key] = val unless settings.has_key?(key)
       end
+      settings[:timestamp] = Time.now.to_i unless settings[:timestamp]
 
       illegal_keys = settings.keys - SETTINGS_DEFAULTS.keys
       raise "Illegal keys in settings: #{illegal_keys.inspect}!" unless illegal_keys.empty?
