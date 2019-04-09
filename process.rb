@@ -1,5 +1,18 @@
 #!/usr/bin/env ruby
 
+# This is a simple Ruby data processing library for (specifically)
+# use with RSB. There's a similar but different one for RRB.
+#
+# For simple use, you can either use the default cohorts, which
+# group by the Ruby version, the URL, the server command and
+# the amount of time benchmarked. In some cases you'll want to
+# provide a different division into cohorts.
+#
+# In my canonical benchmarking, a "normal" run tends to have an
+# error rate of zero in 180 seconds. So if you're seeing anything
+# that exceeds the threshold here (0.01%, or 1 per 10k requests),
+# something's up.
+
 require "json"
 require "optparse"
 

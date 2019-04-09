@@ -1,5 +1,10 @@
 #!/usr/bin/env ruby
 
+# This is a slightly outdated benchmark runner.
+# It's not gone yet, but you should be looking at the
+# new-style runners under the "runners" directory
+# if you're writing something new.
+
 require_relative "bench_lib"
 include BenchLib
 

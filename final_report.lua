@@ -1,4 +1,5 @@
--- Attempt to dump all latency values, and generally all collected stats data
+-- This script is used by RSB to dump more latency and rate samples from
+-- wrk than are generally available.
 
 done = function(summary, latency, requests)
    io.write("-- Final Report ------------------------------\n")

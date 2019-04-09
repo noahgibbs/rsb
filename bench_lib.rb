@@ -1,3 +1,7 @@
+# This library is used by runners to set up benchmark runs.
+# See the "runners" directory for the normal interface to
+# this code.
+
 require "json"
 require "bundler"
 
