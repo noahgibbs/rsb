@@ -1,6 +1,7 @@
 ## Bugs
 
 * Packer build isn't getting wrk into /usr/local/bin properly on Ubuntu
+* Lots of error messages to console - need to fix w/ wget and server disconnect
 
 ## Features We Could Really Use
 
