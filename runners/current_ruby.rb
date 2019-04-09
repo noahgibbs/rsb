@@ -24,9 +24,6 @@ opts = {
   bundler_version: "1.17.3",
   bundle_gemfile: "Gemfile.#{ruby_version}",
   verbose: 1,
-
-  # This interface needs to change. This line shouldn't be needed, but currently is.
-  ruby_change_cmd: "ruby RUNNER_SCRIPT JSON_FILENAME",
 }
 
 rack_options = {

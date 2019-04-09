@@ -41,7 +41,7 @@ def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
   }
 
   ruby_opts = {
-    rvm_ruby_version: rvm_ruby_version,
+    before_worker: "rvm use #{rvm_ruby_version} && bundle",  # Run before each batch
     bundle_gemfile: "Gemfile.#{rvm_ruby_version}",
   }
 

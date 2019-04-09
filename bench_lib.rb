@@ -133,8 +133,8 @@ module BenchLib
       wrk_script_location: "./final_report.lua",  # This is the lua script for generating the final report, relative to this source file
 
       # Ruby config - this interface is clunky and may change
-      rvm_ruby_version: nil,
-      ruby_change_cmd: "bash -l -c \"rvm use RVM_RUBY_VERSION && bundle && ruby RUNNER_SCRIPT JSON_FILENAME\"",
+      before_worker_cmd: "bundle",
+      ruby_change_cmd: "bash -l -c \"BEFORE_WORKER && ruby RUNNER_SCRIPT JSON_FILENAME\"",
       json_filename: "/tmp/benchlib_#{Process.pid}.json",
       wrk_runner: File.expand_path(File.join(__dir__, "wrk_runner.rb")),
 
@@ -186,7 +186,7 @@ module BenchLib
         next if @settings[opt].nil?
         @settings[opt] = @settings[opt].gsub "PORT", @settings[:port].to_s # Dup string on first gsub
         @settings[opt].gsub! "TIMESTAMP", @settings[:timestamp].to_s
-        @settings[opt].gsub! "RVM_RUBY_VERSION", @settings[:rvm_ruby_version] if @settings[:rvm_ruby_version]
+        @settings[opt].gsub! "BEFORE_WORKER", @settings[:before_worker_cmd]
         @settings[opt].gsub! "JSON_FILENAME", @settings[:json_filename]
         @settings[opt].gsub! "RUNNER_SCRIPT", @settings[:wrk_runner]
       end
