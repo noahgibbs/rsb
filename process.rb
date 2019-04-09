@@ -5,6 +5,7 @@ require "optparse"
 
 cohorts_by = "rvm current,warmup_seconds,benchmark_seconds,server_cmd,url"
 input_glob = "rsb_*.json"
+error_proportion = 0.0001  # Default to 0.01% of requests in any single file may have an error
 
 OptionParser.new do |opts|
   opts.banner = "Usage: ruby process.rb [options]"
@@ -13,6 +14,9 @@ OptionParser.new do |opts|
   end
   opts.on("-i", "--input-glob GLOB", "File pattern to match on (default #{input_glob})") do |s|
     input_glob = s
+  end
+  opts.on("-e PROPORTION", "--error-tolerance PROPORTION", "Error tolerance in analysis as a proportion of requests per data file -- defaults to 0.0001, or 0.01% of requests in a particular file may have an error.") do |p|
+    error_proportion = p.to_f
   end
 end.parse!
 
@@ -23,6 +27,7 @@ cohort_indices = cohorts_by.strip.split(",")
 req_time_by_cohort = {}
 req_rates_by_cohort = {}
 throughput_by_cohort = {}
+errors_by_cohort = {}
 
 INPUT_FILES = Dir[input_glob]
 
@@ -48,6 +53,8 @@ def run_length_array_to_simple_array(input)
   end
   out
 end
+
+error_total = 0
 
 INPUT_FILES.each do |f|
   begin
@@ -82,7 +89,12 @@ INPUT_FILES.each do |f|
   errors = d["requests"]["benchmark"]["errors"]
 
   if errors.values.any? { |e| e > 0 }
-    raise "Error rate > 0! Do we reject this input? #{errors.inspect}"
+    errors_in_file = errors.values.inject(0, &:+)
+    error_total += errors_in_file
+    error_rate = errors_in_file.to_f / latencies.size
+    if error_rate > error_proportion
+      raise "Error rate of #{error_rate.inspect} exceeds maximum of #{error_proportion}! Raise the maximum with -e or throw away file #{f.inspect}!"
+    end
   end
 
   duration = d["settings"]["benchmark_seconds"]
@@ -98,6 +110,9 @@ INPUT_FILES.each do |f|
 
   throughput_by_cohort[cohort] ||= []
   throughput_by_cohort[cohort].push (latencies.size / duration)
+
+  errors_by_cohort[cohort] ||= []
+  errors_by_cohort[cohort].push errors
 end
 
 def percentile(list, pct)
@@ -171,6 +186,29 @@ req_time_by_cohort.keys.sort.each do |cohort|
   process_output[:processed][:cohort][cohort][:throughput_median] = percentile(throughputs, 50)
   process_output[:processed][:cohort][cohort][:throughput_variance] = array_variance(throughputs)
   print "  #{throughputs.inspect}\n\n"
+
+  print "--\n  Error rates:\n"
+  errors_by_type = {
+    "connect" => 0,
+    "read" => 0,
+    "write" => 0,
+    "status" => 0,
+    "timeout" => 0,
+  }
+  errors_by_cohort[cohort].each { |e| e.each { |k, v| errors_by_type[k] += v }}
+  error_total = errors_by_cohort[cohort].map { |e| e.values.inject(0, &:+) }.inject(0, &:+)
+  process_output[:processed][:cohort][cohort][:error_total] = error_total
+  process_output[:processed][:cohort][cohort][:error_rate] = error_total.to_f / latencies.size
+  process_output[:processed][:cohort][cohort][:errors_by_type] = errors_by_type
+
+  print "  Cohort rate: #{error_total.to_f / latencies.size}, cohort total errors: #{error_total}\n"
+  print "  By type:\n"
+  print "    Connect: #{errors_by_type["connect"]}\n"
+  print "    Read: #{errors_by_type["read"]}\n"
+  print "    Write: #{errors_by_type["write"]}\n"
+  print "    HTTP Status: #{errors_by_type["status"]}\n"
+  print "    Timeout: #{errors_by_type["timeout"]}\n"
+  print "\n\n"
 end
 
 print "******************\n"

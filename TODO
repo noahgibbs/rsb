@@ -2,7 +2,7 @@
 
 * Packer build isn't getting wrk into /usr/local/bin properly on Ubuntu
 * Lots of error messages to console - need to fix w/ wget and server disconnect
-* Automatically show error rate, don't wait for data processing to show the problem (but data processing should also say so)
+* Automatically show error rate after benchmark run
 
 ## Features We Could Really Use
 
