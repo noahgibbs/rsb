@@ -175,6 +175,11 @@ req_time_by_cohort.keys.sort.each do |cohort|
     process_output[:processed][:cohort][cohort][:request_percentiles][p.to_s] = percentile(latencies, p)
     print "  #{"%2d" % p}%ile: #{percentile(latencies, p)}\n" if p % 5 == 0
   end
+  variance = array_variance(latencies)
+  print "  Mean: #{array_mean(latencies).inspect} Median: #{percentile(latencies, 50).inspect} Variance: #{variance.inspect} StdDev: #{Math.sqrt(variance).inspect}\n"
+  process_output[:processed][:cohort][cohort][:latency_mean] = array_mean(latencies)
+  process_output[:processed][:cohort][cohort][:latency_median] = percentile(latencies, 50)
+  process_output[:processed][:cohort][cohort][:latency_variance] = variance
 
   print "--\n  Requests/Second Rates:\n"
   (0..20).each do |i|
@@ -182,13 +187,14 @@ req_time_by_cohort.keys.sort.each do |cohort|
     process_output[:processed][:cohort][cohort][:rate_percentiles][p.to_s] = percentile(rates, p)
     print "  #{"%2d" % p}%ile: #{percentile(rates, p)}\n"
   end
-  print "  Mean: #{array_mean(rates).inspect} Median: #{percentile(rates, 50).inspect} Variance: #{array_variance(rates).inspect}\n"
+  variance = array_variance(rates)
+  print "  Mean: #{array_mean(rates).inspect} Median: #{percentile(rates, 50).inspect} Variance: #{variance.inspect} StdDev: #{Math.sqrt(variance).inspect}\n"
   process_output[:processed][:cohort][cohort][:rate_mean] = array_mean(rates)
   process_output[:processed][:cohort][cohort][:rate_median] = percentile(rates, 50)
   process_output[:processed][:cohort][cohort][:rate_variance] = array_variance(rates)
 
   print "--\n  Throughput in reqs/sec for each full run:\n"
-  print "  Mean: #{array_mean(throughputs).inspect} Median: #{percentile(throughputs, 50).inspect} Variance: #{array_variance(throughputs).inspect}\n"
+  print "  Mean: #{array_mean(throughputs).inspect} Median: #{percentile(throughputs, 50).inspect}\n"
   process_output[:processed][:cohort][cohort][:throughput_mean] = array_mean(throughputs)
   process_output[:processed][:cohort][cohort][:throughput_median] = percentile(throughputs, 50)
   process_output[:processed][:cohort][cohort][:throughput_variance] = array_variance(throughputs)
