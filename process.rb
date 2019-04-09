@@ -6,6 +6,7 @@ require "optparse"
 cohorts_by = "rvm current,warmup_seconds,benchmark_seconds,server_cmd,url"
 input_glob = "rsb_*.json"
 error_proportion = 0.0001  # Default to 0.01% of requests in any single file may have an error
+permissive_cohorts = false
 
 OptionParser.new do |opts|
   opts.banner = "Usage: ruby process.rb [options]"
@@ -17,6 +18,9 @@ OptionParser.new do |opts|
   end
   opts.on("-e PROPORTION", "--error-tolerance PROPORTION", "Error tolerance in analysis as a proportion of requests per data file -- defaults to 0.0001, or 0.01% of requests in a particular file may have an error.") do |p|
     error_proportion = p.to_f
+  end
+  opts.on("-p", "--permissive-cohorts", "Allow cohort components to be NULL for a particular file or sample") do
+    permissive_cohorts = true
   end
 end.parse!
 
@@ -72,8 +76,11 @@ INPUT_FILES.each do |f|
     elsif d["environment"].has_key?(cohort_elt)
       item = d["environment"][cohort_elt]
     else
-      STDERR.puts "Can't find setting or environment object #{cohort_elt}!"
-      cohort_elt = ""
+      if permissive_cohorts
+        cohort_elt = ""
+      else
+        raise "Can't find setting or environment object #{cohort_elt} in file #{f.inspect}!"
+      end
     end
     item
   end
