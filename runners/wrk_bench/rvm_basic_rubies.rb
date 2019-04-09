@@ -26,14 +26,16 @@ shared_opts = {
 }
 
 %w(2.0.0-p0 2.0.0-p648 2.1.10 2.2.10 2.3.8 2.4.5 2.5.3 2.6.0).each do |rvm_ruby_version|
-  ruby_opts = { rvm_ruby_version: rvm_ruby_version }
-  # -o ../data/rsb_rails_TIMESTAMP.json
-  # -o ../data/rsb_rack_TIMESTAMP.json
+  ruby_opts = {
+    rvm_ruby_version: rvm_ruby_version,
+    bundle_gemfile: "Gemfile.#{rvm_ruby_version}",
+  }
 
   begin
     rails_opts = shared_opts.merge(ruby_opts).merge({
       # Benchmarking options
       url: "http://127.0.0.1:PORT/simple_bench/static",
+      out_file: File.expand_path File.join(__dir__, "..", "..", "data", "rsb_rails_TIMESTAMP"),
 
       # Server environment options
       server_cmd: "bundle exec rails server -p PORT",
@@ -50,6 +52,7 @@ shared_opts = {
     #  server_cmd: "bundle && bundle exec rackup -p PORT",
     #  server_pre_cmd: "bundle",
     #  server_kill_matcher: "rackup",
+    #  out_file: File.expand_path File.join(__dir__, "..", "..", "data", "rsb_rack_TIMESTAMP"),
     #})
     #Dir.chdir("rack_test_app") do
     #  e = BenchmarkEnvironment.new rack_opts
