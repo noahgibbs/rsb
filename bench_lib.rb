@@ -40,7 +40,8 @@ module BenchLib
 
   # ServerEnvironment starts and manages a Rails server to benchmark against.
   class ServerEnvironment
-    def initialize(server_start_cmd = "rackup", server_pre_cmd: "echo Skipping", server_kill_substring: "rackup", server_kill_command: nil, self_name: "ab_bench", url: "http://localhost:3000")
+    def initialize(server_start_cmd = "rackup", server_pre_cmd: "echo Skipping", server_kill_substring: "rackup",
+          server_kill_command: nil, self_name: "ab_bench", url: "http://localhost:3000", suppress_server_output: true)
       @server_start_cmd = server_start_cmd
       @server_pre_cmd = server_pre_cmd
       @server_kill_substring = server_kill_substring
@@ -50,6 +51,7 @@ module BenchLib
         raise "Can't supply both server kill command and server kill substring!"
       end
       @url = url
+      @suppress_server_output = suppress_server_output
     end
 
     # Note: this only makes sense if we received @server_kill_substring, not @server_kill_command
@@ -76,7 +78,8 @@ module BenchLib
     end
 
     def start_server
-      csystem("#{@server_start_cmd} &", "Can't run server!")
+      output_modifier = @suppress_server_output ? "&>/dev/null" : ""
+      csystem("#{@server_start_cmd} #{output_modifier} &", "Can't run server!")
     end
 
     def url_available?
@@ -152,6 +155,7 @@ module BenchLib
       server_pre_cmd: nil,  # This command is run at least once before starting the server
       server_kill_command: nil,  # This is a command which, if run, should kill the server
       server_kill_matcher: nil,  # This is a string which, if matched, means "kill this process when killing server"
+      suppress_server_output: true,
     }
 
     def initialize(settings = {})
@@ -288,7 +292,8 @@ module BenchLib
                                          server_kill_substring: @settings[:server_kill_matcher],
                                          server_kill_command: @settings[:server_kill_command],
                                          self_name: "wrk_bench",
-                                         url: @settings[:url]
+                                         url: @settings[:url],
+                                         suppress_server_output: @settings[:suppress_server_output]
 
       # If we know how to make sure the server isn't running, do that.
       if @settings[:server_kill_matcher]
