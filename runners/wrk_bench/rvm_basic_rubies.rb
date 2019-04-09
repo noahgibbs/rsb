@@ -46,21 +46,30 @@ shared_opts = {
       e = BenchmarkEnvironment.new rails_opts
       e.run_wrk
     end
-
-    #rack_opts = shared_opts.merge(ruby_opts).merge({
-    #  url: "http://127.0.0.1:PORT/simple_bench/static",
-    #  server_cmd: "bundle && bundle exec rackup -p PORT",
-    #  server_pre_cmd: "bundle",
-    #  server_kill_matcher: "rackup",
-    #  out_file: File.expand_path(File.join(__dir__, "..", "..", "data", "rsb_rack_TIMESTAMP.json")),
-    #})
-    #Dir.chdir("rack_test_app") do
-    #  e = BenchmarkEnvironment.new rack_opts
-    #  e.run_wrk
-    #end
   rescue RuntimeError => exc
-    puts "Caught exception: #{exc.message.inspect}"
+    puts "Caught exception in Rails app: #{exc.message.inspect}"
     puts "Backtrace:\n#{exc.backtrace.join("\n")}"
-    puts "Ruby #{rvm_ruby_version.inspect} failed, but we'll keep going..."
+    puts "Rails app for Ruby #{rvm_ruby_version.inspect} failed, but we'll keep going..."
+  end
+
+  begin
+    rack_opts = shared_opts.merge(ruby_opts).merge({
+      # Benchmarking options
+      url: "http://127.0.0.1:PORT/simple_bench/static",
+      out_file: File.expand_path(File.join(__dir__, "..", "..", "data", "rsb_rack_TIMESTAMP.json")),
+
+      # Server environment options
+      server_cmd: "bundle && bundle exec rackup -p PORT",
+      server_pre_cmd: "bundle",
+      server_kill_matcher: "rackup",
+    })
+    Dir.chdir("rack_test_app") do
+      e = BenchmarkEnvironment.new rack_opts
+      e.run_wrk
+    end
+  rescue RuntimeError => exc
+    puts "Caught exception in Rack app: #{exc.message.inspect}"
+    puts "Backtrace:\n#{exc.backtrace.join("\n")}"
+    puts "Rack app for Ruby #{rvm_ruby_version.inspect} failed, but we'll keep going..."
   end
 end
