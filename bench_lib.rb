@@ -303,10 +303,15 @@ module BenchLib
       raise "URL #{@settings[:url].inspect} should not be available before the server runs!" if server_env.url_available?
 
       server_env.with_url_available do
-        verbose "Starting warmup iterations"
-        # Warmup iterations first
         wrk_script_location = File.join(__dir__, @settings[:wrk_script_location])
-        csystem("#{@settings[:wrk_binary]} -t#{@settings[:wrk_concurrency]} -c#{@settings[:wrk_connections]} -d#{@settings[:warmup_seconds]}s -s#{wrk_script_location} --latency #{@settings[:url]} > warmup_output_#{@settings[:timestamp]}.txt", "Couldn't run warmup iterations!")
+
+        # Warmup iterations first, if there are any
+        if @settings[:warmup_seconds] > 0
+          verbose "Starting warmup iterations"
+          csystem("#{@settings[:wrk_binary]} -t#{@settings[:wrk_concurrency]} -c#{@settings[:wrk_connections]} -d#{@settings[:warmup_seconds]}s -s#{wrk_script_location} --latency #{@settings[:url]} > warmup_output_#{@settings[:timestamp]}.txt", "Couldn't run warmup iterations!")
+        else
+          verbose "No warmup iterations..."
+        end
 
         verbose "Starting real benchmark iterations"
         csystem("#{@settings[:wrk_binary]} -t#{@settings[:wrk_concurrency]} -c#{@settings[:wrk_connections]} -d#{@settings[:benchmark_seconds]}s -s#{wrk_script_location} --latency #{@settings[:url]} > benchmark_output_#{@settings[:timestamp]}.txt", "Couldn't run warmup iterations!")
@@ -315,10 +320,12 @@ module BenchLib
       raise "URL #{@settings[:url].inspect} should not be available after the kill command (#{@settings[:server_kill_matcher].inspect})!" if server_env.url_available?
 
       # Read wrk's output, parse into our own output array
-      output["requests"]["warmup"] = parse_wrk_into_stats(File.read "warmup_output_#{@settings[:timestamp]}.txt")
+      if @settings[:warmup_seconds] > 0
+        output["requests"]["warmup"] = parse_wrk_into_stats(File.read "warmup_output_#{@settings[:timestamp]}.txt")
+        File.unlink "warmup_output_#{@settings[:timestamp]}.txt"
+      end
       output["requests"]["benchmark"] = parse_wrk_into_stats(File.read "benchmark_output_#{@settings[:timestamp]}.txt")
 
-      File.unlink "warmup_output_#{@settings[:timestamp]}.txt"
       File.unlink "benchmark_output_#{@settings[:timestamp]}.txt"
 
       json_text = JSON.pretty_generate(output)
@@ -328,7 +335,6 @@ module BenchLib
 
       verbose "All data files written successfully."
     end
-
 
   end
 
