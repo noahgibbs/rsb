@@ -7,7 +7,7 @@
 # For this, I just provide a set of options in Ruby instead of trying to use the command line to set up the
 # quite large configuration.
 
-require_relative "../../bench_lib"
+require_relative "../bench_lib"
 include BenchLib
 
 shared_opts = {
