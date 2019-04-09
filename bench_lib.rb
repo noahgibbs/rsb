@@ -123,7 +123,7 @@ module BenchLib
 
       # Ruby config - this interface is clunky and may change
       rvm_ruby_version: nil,
-      ruby_change_cmd: "bash -l -c \"rvm use RVM_RUBY_VERSION && ruby RUNNER_SCRIPT JSON_FILENAME\"",
+      ruby_change_cmd: "bash -l -c \"rvm use RVM_RUBY_VERSION && bundle && ruby RUNNER_SCRIPT JSON_FILENAME\"",
       json_filename: "/tmp/benchlib_#{Process.pid}.json",
       wrk_runner: File.expand_path(File.join(__dir__, "wrk_runner.rb")),
 
