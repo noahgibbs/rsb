@@ -34,7 +34,7 @@ shared_opts = {
   begin
     rails_opts = shared_opts.merge(ruby_opts).merge({
       # Benchmarking options
-      url: "http://127.0.0.1:PORT/simple_bench/static",
+      url: "http://127.0.0.1:PORT/static",
       out_file: File.expand_path(File.join(__dir__, "..", "data", "rsb_rails_TIMESTAMP.json")),
 
       # Server environment options
@@ -55,7 +55,7 @@ shared_opts = {
   begin
     rack_opts = shared_opts.merge(ruby_opts).merge({
       # Benchmarking options
-      url: "http://127.0.0.1:PORT/simple_bench/static",
+      url: "http://127.0.0.1:PORT/static",
       out_file: File.expand_path(File.join(__dir__, "..", "data", "rsb_rack_TIMESTAMP.json")),
 
       # Server environment options
