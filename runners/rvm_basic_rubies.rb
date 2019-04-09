@@ -35,7 +35,7 @@ shared_opts = {
     rails_opts = shared_opts.merge(ruby_opts).merge({
       # Benchmarking options
       url: "http://127.0.0.1:PORT/simple_bench/static",
-      out_file: File.expand_path(File.join(__dir__, "..", "..", "data", "rsb_rails_TIMESTAMP.json")),
+      out_file: File.expand_path(File.join(__dir__, "..", "data", "rsb_rails_TIMESTAMP.json")),
 
       # Server environment options
       server_cmd: "bundle exec rails server -p PORT",
@@ -56,7 +56,7 @@ shared_opts = {
     rack_opts = shared_opts.merge(ruby_opts).merge({
       # Benchmarking options
       url: "http://127.0.0.1:PORT/simple_bench/static",
-      out_file: File.expand_path(File.join(__dir__, "..", "..", "data", "rsb_rack_TIMESTAMP.json")),
+      out_file: File.expand_path(File.join(__dir__, "..", "data", "rsb_rack_TIMESTAMP.json")),
 
       # Server environment options
       server_cmd: "bundle && bundle exec rackup -p PORT",
