@@ -194,10 +194,19 @@ req_time_by_cohort.keys.sort.each do |cohort|
   process_output[:processed][:cohort][cohort][:rate_variance] = array_variance(rates)
 
   print "--\n  Throughput in reqs/sec for each full run:\n"
-  print "  Mean: #{array_mean(throughputs).inspect} Median: #{percentile(throughputs, 50).inspect}\n"
-  process_output[:processed][:cohort][cohort][:throughput_mean] = array_mean(throughputs)
-  process_output[:processed][:cohort][cohort][:throughput_median] = percentile(throughputs, 50)
-  process_output[:processed][:cohort][cohort][:throughput_variance] = array_variance(throughputs)
+  if throughputs.size == 1
+    # Only one run means no variance or standard deviation
+    print "  Mean: #{array_mean(throughputs).inspect} Median: #{percentile(throughputs, 50).inspect}\n"
+    process_output[:processed][:cohort][cohort][:throughput_mean] = array_mean(throughputs)
+    process_output[:processed][:cohort][cohort][:throughput_median] = percentile(throughputs, 50)
+    process_output[:processed][:cohort][cohort][:throughput_variance] = array_variance(throughputs)
+  else
+    variance = array_variance(throughputs)
+    print "  Mean: #{array_mean(throughputs).inspect} Median: #{percentile(throughputs, 50).inspect} Variance: #{variance} StdDev: #{Math.sqrt(variance)}\n"
+    process_output[:processed][:cohort][cohort][:throughput_mean] = array_mean(throughputs)
+    process_output[:processed][:cohort][cohort][:throughput_median] = percentile(throughputs, 50)
+    process_output[:processed][:cohort][cohort][:throughput_variance] = variance
+  end
   print "  #{throughputs.inspect}\n\n"
 
   print "--\n  Error rates:\n"
