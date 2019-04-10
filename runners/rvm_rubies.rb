@@ -107,13 +107,12 @@ def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
 
     before_worker_cmd: "rvm use #{rvm_ruby_version} && bundle",  # Run before each batch
     bundle_gemfile: "Gemfile.#{rvm_ruby_version}",
-    extra_env: {
-      "RSB_RUN_INDEX" => run_index,
-    },
 
     # Useful for debugging, annoying for day-to-day use
     suppress_server_output: OPTS[:suppress_server_output],
   })
+  # Can't include this in the merge above or it'll overwrite Puma's extra_env
+  opts[:extra_env]["RSB_RUN_INDEX"] = run_index
 
   begin
     COUNTERS[:runs] += 1
