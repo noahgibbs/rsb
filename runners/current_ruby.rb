@@ -9,9 +9,13 @@
 
 require_relative "../bench_lib"
 include BenchLib
+include BenchLib::OptionsBuilder
 
 which_app = :rails  # Can also be :rack
 
+# This determines which Gemfile.lock is appropriate.
+# There may not be a single most appropriate version, or you may
+# need to create one.
 ruby_version = `ruby -e "puts RUBY_VERSION"`.chomp
 
 opts = {
@@ -26,35 +30,15 @@ opts = {
   verbose: 1,
 }
 
-rack_options = {
-  # Benchmarking options
-  out_file: File.expand_path(File.join(__dir__, "..", "data", "rsb_rack_TIMESTAMP.json")),
-
-  # Server environment options
-  server_cmd: "bundle && bundle exec rackup -p PORT",
-  server_pre_cmd: "bundle",
-  server_kill_matcher: "rackup",
-}
-
-rails_options = {
-  # Benchmarking options
-  out_file: File.expand_path(File.join(__dir__, "..", "data", "rsb_rails_TIMESTAMP.json")),
-
-  # Server environment options
-  server_cmd: "bundle exec rails server -p PORT",
-  server_pre_cmd: "bundle && bundle exec rake db:migrate",
-  server_kill_matcher: "rails server",
-}
-
 if which_app == :rack
-  opts.merge!(rack_options)
+  opts.merge!(webrick_rack_options)
 elsif which_app == :rails
-  opts.merge!(rails_options)
+  opts.merge!(webrick_rails_options)
 else
   raise "Uh-oh! Which_app isn't :rack or :rails!"
 end
 
+# Here's the meat of how to turn those options into benchmark output
 Dir.chdir("#{which_app}_test_app") do
-  e = BenchmarkEnvironment.new opts
-  e.run_wrk
+  BenchmarkEnvironment.new(opts).run_wrk
 end

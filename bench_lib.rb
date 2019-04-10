@@ -149,6 +149,7 @@ module BenchLib
       rack_env: "production", # Sets both $RACK_ENV and $RAILS_ENV
       bundle_gemfile: nil,    # If supplied, set BUNDLE_GEMFILE to value.
       bundler_version: nil,   # If supplied, set BUNDLER_VERSION to value.
+      extra_env: {},          # Additional environment variables to set.
 
       # Benchmarking options
       port: 4321,
@@ -160,23 +161,19 @@ module BenchLib
       # Server environment options
       server_cmd: nil,      # This command should start the server
       server_pre_cmd: nil,  # This command is run at least once before starting the server
-      server_kill_command: nil,  # This is a command which, if run, should kill the server
-      server_kill_matcher: nil,  # This is a string which, if matched, means "kill this process when killing server"
+      server_kill_command: nil,  # This is a command which, if run, should kill the server - only use *one* of kill command or kill matcher
+      server_kill_matcher: nil,  # This is a string which, if matched, means "kill this process when killing server" - only use *one* of kill command or kill matcher
       suppress_server_output: true,
     }
 
     def initialize(settings = {})
-      settings = settings.dup # Don't modify passed-in original, if any
-
-      # Unset keys get assigned the default
-      SETTINGS_DEFAULTS.each do |key, val|
-        settings[key] = val unless settings.has_key?(key)
-      end
-      settings[:timestamp] = Time.now.to_i unless settings[:timestamp]
+      settings = SETTINGS_DEFAULTS.merge(settings) # Don't modify passed-in original
 
       illegal_keys = settings.keys - SETTINGS_DEFAULTS.keys
       raise "Illegal keys in settings: #{illegal_keys.inspect}!" unless illegal_keys.empty?
       @settings = settings
+
+      settings[:timestamp] = Time.now.to_i unless settings[:timestamp]
 
       # Verify that wrk is installed and available
       if @settings[:wrk_binary] == "wrk"
@@ -189,7 +186,7 @@ module BenchLib
       # Perform text substitution on options
       # In some options, there's a text substitution for variables like PORT and TIMESTAMP
       [:url, :server_cmd, :server_pre_cmd, :server_kill_matcher, :server_kill_command,
-        :out_file, :ruby_change_cmd].each do |opt|
+        :out_file, :before_worker_cmd, :ruby_change_cmd].each do |opt|
         next if @settings[opt].nil?
         @settings[opt] = @settings[opt].gsub "PORT", @settings[:port].to_s # Dup string on first gsub
         @settings[opt].gsub! "TIMESTAMP", @settings[:timestamp].to_s
@@ -222,7 +219,10 @@ module BenchLib
           if @settings[:bundler_version]
             ENV["BUNDLER_VERSION"] = @settings[:bundler_version]
           end
-          STDERR.puts "exec: #{cmd_line.inspect}"
+          if @settings[:extra_env]
+            @settings[:extra_env].each { |k, v| ENV[k.to_s] = v.to_s }
+          end
+          verbose "exec: #{cmd_line.inspect}"
           exec cmd_line
         end
       end
@@ -345,11 +345,79 @@ module BenchLib
 
   end
 
-  module ApacheBenchClient
-    def self.installed?
-      which_ab = `which ab`
-      which_ab && which_ab.strip != ""
-    end
-  end
+  module OptionsBuilder
+    def webrick_rails_options(processes: 1, threads: 1)
+      if processes > 1
+        raise "WEBrick doesn't support multiple processes!"
+      end
+      if threads > 1
+        raise "WEBrick supports multiple threads, but not with Rails (see https://github.com/rails/rails/issues/10772)"
+      end
 
+      {
+        # Benchmarking options
+        out_file: File.expand_path(File.join(__dir__, "data", "rsb_rails_TIMESTAMP.json")),
+
+        # Server environment options
+        server_cmd: "bundle exec rails server -p PORT",
+        server_pre_cmd: "bundle && bundle exec rake db:migrate",
+        server_kill_matcher: "rails server",
+      }
+    end
+
+    def webrick_rack_options(processes: 1, threads: 1)
+      if processes > 1
+        raise "WEBrick doesn't support multiple processes!"
+      end
+      if threads > 1
+        raise "WEBrick supports multiple threads, but RSB doesn't support that yet"
+      end
+
+      {
+        # Benchmarking options
+        out_file: File.expand_path(File.join(__dir__, "data", "rsb_rack_TIMESTAMP.json")),
+
+        # Server environment options
+        server_cmd: "bundle && bundle exec rackup -p PORT",
+        server_pre_cmd: "bundle",
+        server_kill_matcher: "rackup",
+      }
+    end
+
+    def puma_rails_options(processes:, threads:)
+      {
+        # Benchmarking options
+        out_file: File.expand_path(File.join(__dir__, "data", "rsb_rails_TIMESTAMP.json")),
+
+        # Server environment options
+        server_cmd: "bundle exec puma -p PORT -t #{threads}:#{threads} -w #{processes} --tag puma_rsb_rails_#{Process.pid}",
+        server_pre_cmd: "bundle && bundle exec rake db:migrate",
+        server_kill_matcher: "puma_rsb_rails_#{Process.pid}",
+
+        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
+        extra_env: {
+          "RSB_EXTRA_GEMFILES" => "Gemfile.puma",
+        }
+      }
+    end
+
+    def puma_rack_options(processes:, threads:)
+      {
+        # Benchmarking options
+        out_file: File.expand_path(File.join(__dir__, "data", "rsb_rack_TIMESTAMP.json")),
+
+        # Server environment options
+        server_cmd: "bundle exec puma -p PORT -t #{threads}:#{threads} -w #{processes} --tag puma_rsb_rack_#{Process.pid}",
+        server_pre_cmd: "bundle",
+        server_kill_matcher: "puma_rsb_rack_#{Process.pid}",
+
+        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
+        extra_env: {
+          "RSB_EXTRA_GEMFILES" => "Gemfile.puma",
+        }
+      }
+    end
+
+    # TODO: Unicorn, Thin, multiple Passenger configs
+  end
 end
