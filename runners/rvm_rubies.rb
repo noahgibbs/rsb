@@ -50,6 +50,8 @@ raise "Unknown app server: #{OPTS[:app_server].inspect}!" unless ["puma", "webri
   OPTS[opt_name] = ENV[env_name] ? ENV[env_name].to_i : default_val
 end
 
+puts "Current-run Options:\n#{JSON.pretty_generate OPTS}\n\n"
+
 # Generate run arrays as the power set of (1..num_runs) x [:rails, :rack] x ruby_versions
 runs = OPTS[:ruby_versions].flat_map do |rv|
   [:rails, :rack].flat_map { |rr| (1..(OPTS[:num_runs])).map { |run_idx| [ rv, rr, run_idx ] } }
