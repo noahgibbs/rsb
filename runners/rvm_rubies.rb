@@ -29,12 +29,15 @@ include BenchLib::OptionsBuilder
 # RSB_PUMA_PROCESSES: if using Puma, number of processes (default: 4)
 # RSB_PUMA_THREADS: if using Puma, threads/process (default: 5)
 
+# RSB_DEBUG_SERVER: if true, show server output instead of suppressing it. Some errors are fine, others not... :-/
+
 OPTS = {}
 
 OPTS[:ruby_versions] = ENV["RSB_RUBIES"] ? ENV["RSB_RUBIES"].split(" ").compact : %w(2.0.0-p0 2.0.0-p648 2.1.10 2.2.10 2.3.8 2.4.5 2.5.3 2.6.0)
 OPTS[:url] = ENV["RSB_URL"] || "http://127.0.0.1:PORT/static"
 OPTS[:app_server] = ENV["RSB_APP_SERVER"] ? ENV["RSB_APP_SERVER"].downcase : "webrick"
 raise "Unknown app server: #{OPTS[:app_server].inspect}!" unless ["puma", "webrick"].include?(OPTS[:app_server])
+OPTS[:suppress_server_output] = ENV["RSB_DEBUG_SERVER"] ? true : false
 
 # Integer environment parameters
 [
@@ -101,7 +104,7 @@ def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
     },
 
     # Useful for debugging, annoying for day-to-day use
-    #suppress_server_output: false,
+    suppress_server_output: OPTS[:suppress_server_output],
   })
 
   begin
