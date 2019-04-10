@@ -48,7 +48,7 @@ OPTS[:suppress_server_output] = ENV["RSB_DEBUG_SERVER"] ? false : true
   ["RSB_WRK_CONCURRENCY", :wrk_concurrency, 1],
   ["RSB_WRK_CONNECTIONS", :wrk_connections, 60],
   ["RSB_PUMA_PROCESSES", :puma_processes, 4],
-  ["RSB_PUMA_THREADS", :puma_processes, 5],
+  ["RSB_PUMA_THREADS", :puma_threads, 5],
 ].each do |env_name, opt_name, default_val|
   OPTS[opt_name] = ENV[env_name] ? ENV[env_name].to_i : default_val
 end
@@ -83,9 +83,9 @@ def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
   when [:webrick, :rails]
     webrick_rails_options
   when [:puma, :rack]
-    puma_rack_options
+    puma_rack_options(processes: OPTS[:puma_processes], threads: OPTS[:puma_threads])
   when [:puma, :rails]
-    puma_rails_options
+    puma_rails_options(processes: OPTS[:puma_processes], threads: OPTS[:puma_threads])
   else
     raise "Unknown app-server/app-type combination: #{[OPTS[:app_server], rack_or_rails].inspect}"
   end
