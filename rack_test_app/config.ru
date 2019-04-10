@@ -1,6 +1,11 @@
 require "complex"
 require "rack"
 
+# Redirect output
+log = File.new("benchmark.log", "a")
+$stdout.reopen(log)
+$stderr.reopen(log)
+
 class SpeedTest
   ROUTES = {
     "/" => proc { [200, {"Content-Type" => "text/html"}, ["Hello World!"]] },
