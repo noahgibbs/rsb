@@ -84,6 +84,7 @@ def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
   end
 end
 
+# Now for every random-ordered run, make it happen.
 runs.each do |ruby_version, rails_or_rack, run_idx|
   run_benchmark(ruby_version, rails_or_rack, run_idx)
 end
