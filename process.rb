@@ -20,6 +20,7 @@ cohorts_by = "rvm current,warmup_seconds,benchmark_seconds,server_cmd,url"
 input_glob = "rsb_*.json"
 error_proportion = 0.0001  # Default to 0.01% of requests in any single file may have an error
 permissive_cohorts = false
+include_raw_data = false
 
 OptionParser.new do |opts|
   opts.banner = "Usage: ruby process.rb [options]"
@@ -34,6 +35,9 @@ OptionParser.new do |opts|
   end
   opts.on("-p", "--permissive-cohorts", "Allow cohort components to be NULL for a particular file or sample") do
     permissive_cohorts = true
+  end
+  opts.on("--include-raw-data", "Include all latencies in final output file") do
+    include_raw_data = true
   end
 end.parse!
 
@@ -174,15 +178,17 @@ req_time_by_cohort.keys.sort.each do |cohort|
   throughputs = throughput_by_cohort[cohort].sort
 
   cohort_printable = cohort_indices.zip(cohort.split(",")).map { |a, b| "#{a}: #{b}" }.join(", ")
-  print "=====\nCohort: #{cohort_printable}, # of requests: #{latencies.size} http requests\n"
+  print "=====\nCohort: #{cohort_printable}, # of requests: #{latencies.size} http requests, #{throughputs.size} batches\n"
 
   process_output[:processed][:cohort][cohort] = {
-    latencies: latencies,
-    request_rates: rates,
     request_percentiles: {},
     rate_percentiles: {},
     throughputs: throughputs,
   }
+  if include_raw_data
+    process_output[:processed][:cohort][cohort][:latencies] = latencies
+    process_output[:processed][:cohort][cohort][:request_rates] = rates
+  end
   print "--\n  Request latencies:\n"
   (0..100).each do |p|
     process_output[:processed][:cohort][cohort][:request_percentiles][p.to_s] = percentile(latencies, p)
