@@ -2,6 +2,13 @@
 # See the "runners" directory for the normal interface to
 # this code.
 
+# There are multiple interfaces here which could easily be
+# separated:
+#
+# * the ServerEnvironment runs a server and shuts it down.
+# * the BenchmarkEnvironment spawns a child process to perform a full benchmark.
+# * the OptionsBuilder makes it easier to generate the options hash for BenchmarkEnvironment.
+
 require "json"
 require "bundler"
 
@@ -132,7 +139,7 @@ module BenchLib
       benchmark_seconds: 180,
       wrk_script_location: "./final_report.lua",  # This is the lua script for generating the final report, relative to this source file
 
-      # Ruby config - this interface is clunky and may change
+      # Runner Config
       before_worker_cmd: "bundle",
       ruby_change_cmd: "bash -l -c \"BEFORE_WORKER && ruby RUNNER_SCRIPT JSON_FILENAME\"",
       json_filename: "/tmp/benchlib_#{Process.pid}.json",
@@ -284,7 +291,7 @@ module BenchLib
     end
 
     # This is run by the child process's wrk_runner.rb as a top-level method
-    def run_wrk_bench
+    def runner_main
       output = capture_environment
 
       server_env = ServerEnvironment.new @settings[:server_cmd],

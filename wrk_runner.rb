@@ -10,6 +10,6 @@ settings_file = ARGV[0]
 settings = JSON.parse(File.read(settings_file), symbolize_names: true)
 be = BenchmarkEnvironment.new settings
 
-be.run_wrk_bench
+be.runner_main
 
 exit 0 # Return w/o error
