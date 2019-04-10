@@ -120,6 +120,7 @@ def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
     env = nil
 
     Dir.chdir("#{rack_or_rails}_test_app") do
+      print "Benchmarking Options:\n#{JSON.pretty_generate(opts)}\n\n"
       env = BenchmarkEnvironment.new opts
       env.run_wrk
     end
