@@ -91,6 +91,8 @@ module BenchLib
 
     def url_available?
       system("curl #{@url} &>/dev/null")
+      $?.success? # For some horrible reason, (only) on Linux, "system" is returning true on failure w/ output suppressed...
+      # Example for irb: result=system("curl http://127.0.0.1:4321/static &>/dev/null")
     end
 
     def ensure_url_available
