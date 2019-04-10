@@ -12,9 +12,9 @@ include BenchLib
 include BenchLib::OptionsBuilder
 
 # This example runner is configured using environment variables.
-# If this looks awkward... Well, you can write a much simpler
-# runner by doing all your config directly in Ruby. See
-# current_ruby.rb in this directory for an example.
+# If this looks awkward for simple cases... Well, you can write
+# a much simpler runner by doing all your config directly in Ruby.
+# See current_ruby.rb in this directory for an example.
 
 # RSB_RUBIES: if set, use this space-separated list of RVM rubies instead of the "canonical" CRubies
 # RSB_NUM_RUNS: number of runs/Ruby (default 10)
