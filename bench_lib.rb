@@ -384,7 +384,7 @@ module BenchLib
       }
     end
 
-    def puma_rails_options(processes:, threads:)
+    def puma_rails_options(processes: 1, threads: 1)
       {
         # Benchmarking options
         out_file: File.expand_path(File.join(__dir__, "data", "rsb_rails_TIMESTAMP.json")),
@@ -401,7 +401,7 @@ module BenchLib
       }
     end
 
-    def puma_rack_options(processes:, threads:)
+    def puma_rack_options(processes: 1, threads: 1)
       {
         # Benchmarking options
         out_file: File.expand_path(File.join(__dir__, "data", "rsb_rack_TIMESTAMP.json")),
