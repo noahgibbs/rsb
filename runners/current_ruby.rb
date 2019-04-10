@@ -25,18 +25,12 @@ opts = {
   benchmark_seconds: 20,
   url: "http://127.0.0.1:PORT/static",
 
-  bundler_version: "1.17.3",
+  bundler_version: nil, # "1.17.3",
   bundle_gemfile: "Gemfile.#{ruby_version}",
   verbose: 1,
 }
 
-if which_app == :rack
-  opts.merge!(webrick_rack_options)
-elsif which_app == :rails
-  opts.merge!(webrick_rails_options)
-else
-  raise "Uh-oh! Which_app isn't :rack or :rails!"
-end
+opts.merge! options_by_framework_and_server(which_app, :webrick)
 
 # Here's the meat of how to turn those options into benchmark output
 Dir.chdir("#{which_app}_test_app") do

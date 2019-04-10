@@ -355,6 +355,32 @@ module BenchLib
   end
 
   module OptionsBuilder
+    FRAMEWORKS = [ :rack, :rails ]
+    APP_SERVERS = [ :webrick, :puma, :passenger ]
+
+    def options_by_framework_and_server(framework, server, processes: 1, threads: 1)
+      raise "No such framework as #{framework.inspect} (only :rails and :rack)!" unless FRAMEWORKS.include?(framework)
+      raise "No such app server as #{server.inspect} (options: #{APP_SERVERS.inspect})!" unless APP_SERVERS.include?(server)
+
+      # The giant case statement is inelegant. I'll rethink it later.
+      case [framework, server]
+      when [:rack, :webrick]
+        webrick_rack_options(processes: processes, threads: threads)
+      when [:rails, :webrick]
+        webrick_rails_options(processes: processes, threads: threads)
+      when [:rack, :puma]
+        puma_rack_options(processes: processes, threads: threads)
+      when [:rails, :puma]
+        puma_rails_options(processes: processes, threads: threads)
+      when [:rack, :passenger]
+        passenger_rack_options(processes: processes, threads: threads)
+      when [:rails, :passenger]
+        passenger_rails_options(processes: processes, threads: threads)
+      else
+        raise "Internal error: no such combination found: #{[framework, server].inspect}!"
+      end
+    end
+
     def webrick_rails_options(processes: 1, threads: 1)
       if processes > 1
         raise "WEBrick doesn't support multiple processes!"
@@ -427,6 +453,48 @@ module BenchLib
       }
     end
 
-    # TODO: Unicorn, Thin, multiple Passenger configs
+    def passenger_rails_options(processes: 1, threads: 1)
+      if threads > 1
+        raise "Free (non-Enterprise) Passenger doesn't support multiple threads per process!"
+      end
+
+      {
+        # Benchmarking options
+        out_file: File.expand_path(File.join(__dir__, "data", "rsb_rails_TIMESTAMP.json")),
+
+        # Server environment options
+        server_cmd: "bundle exec passenger start -p PORT --log-level 2 --max-pool-size #{processes} --min-instances #{processes} --engine=builtin --passenger-pre-start",
+        server_pre_cmd: "bundle && bundle exec rake db:migrate",
+        server_kill_command: "bundle exec passenger stop -p PORT",
+
+        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
+        extra_env: {
+          "RSB_EXTRA_GEMFILES" => "Gemfile.passenger",
+        }
+      }
+    end
+
+    def passenger_rack_options(processes: 1, threads: 1)
+      if threads > 1
+        raise "Free (non-Enterprise) Passenger doesn't support multiple threads per process!"
+      end
+
+      {
+        # Benchmarking options
+        out_file: File.expand_path(File.join(__dir__, "data", "rsb_rack_TIMESTAMP.json")),
+
+        # Server environment options
+        server_cmd: "bundle exec passenger start -p PORT --log-level 2 --max-pool-size #{processes} --min-instances #{processes} --engine=builtin --passenger-pre-start",
+        server_pre_cmd: "bundle",
+        server_kill_command: "bundle exec passenger stop -p PORT",
+
+        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
+        extra_env: {
+          "RSB_EXTRA_GEMFILES" => "Gemfile.passenger",
+        }
+      }
+    end
+
+    # TODO: Unicorn, Thin, Passenger Enterprise
   end
 end
