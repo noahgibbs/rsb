@@ -90,7 +90,9 @@ module BenchLib
     end
 
     def url_available?
-      system("curl #{@url} &>/dev/null")
+      system("curl #{@url} 1>/dev/null 2>&1")
+      $?.success? # For some horrible reason, (only) on Linux, "system" is returning true on failure w/ output suppressed...
+      # Example for irb: result=system("curl http://127.0.0.1:4321/static &>/dev/null")
     end
 
     def ensure_url_available
@@ -116,7 +118,7 @@ module BenchLib
     end
   end
 
-  # A BenchEnvironment is meant to replace a "runner" script - it sets up the environment variables
+  # A BenchmarkEnvironment is meant to replace a "runner" script - it sets up the environment variables
   # and other system-level configuration for a ServerEnvironment to happen inside.
   #
   # WrkBenchRunner assumes that it will need to fork a separate subprocess to make all of this
@@ -194,6 +196,13 @@ module BenchLib
         @settings[opt].gsub! "JSON_FILENAME", @settings[:json_filename]
         @settings[opt].gsub! "RUNNER_SCRIPT", @settings[:wrk_runner]
       end
+    end
+
+    # Output files are particularly liable to have TIMESTAMP substituted in
+    # their name. This is a way to retrieve that without bending over *too*
+    # far backward.
+    def out_file
+      @settings[:out_file]
     end
 
     # This starts a run of wrk by packaging up settings, setting up configuration,

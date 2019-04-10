@@ -25,10 +25,19 @@ include BenchLib::OptionsBuilder
 # RSB_WRK_CONNECTIONS: number of connections created by load-tester (default: 60)
 # RSB_URL: URL to test (default: http://127.0.0.1:PORT/static)
 
+# RSB_APP_SERVER: app server, currently 'webrick' or 'puma' (default: webrick)
+# RSB_PUMA_PROCESSES: if using Puma, number of processes (default: 4)
+# RSB_PUMA_THREADS: if using Puma, threads/process (default: 5)
+
+# RSB_DEBUG_SERVER: if true, show server output instead of suppressing it. Some errors are fine, others not... :-/
+
 OPTS = {}
 
 OPTS[:ruby_versions] = ENV["RSB_RUBIES"] ? ENV["RSB_RUBIES"].split(" ").compact : %w(2.0.0-p0 2.0.0-p648 2.1.10 2.2.10 2.3.8 2.4.5 2.5.3 2.6.0)
 OPTS[:url] = ENV["RSB_URL"] || "http://127.0.0.1:PORT/static"
+OPTS[:app_server] = ENV["RSB_APP_SERVER"] ? ENV["RSB_APP_SERVER"].downcase : "webrick"
+raise "Unknown app server: #{OPTS[:app_server].inspect}!" unless ["puma", "webrick"].include?(OPTS[:app_server])
+OPTS[:suppress_server_output] = ENV["RSB_DEBUG_SERVER"] ? false : true
 
 # Integer environment parameters
 [
@@ -38,9 +47,13 @@ OPTS[:url] = ENV["RSB_URL"] || "http://127.0.0.1:PORT/static"
   ["RSB_DURATION", :benchmark_seconds, 120],
   ["RSB_WRK_CONCURRENCY", :wrk_concurrency, 1],
   ["RSB_WRK_CONNECTIONS", :wrk_connections, 60],
+  ["RSB_PUMA_PROCESSES", :puma_processes, 4],
+  ["RSB_PUMA_THREADS", :puma_threads, 5],
 ].each do |env_name, opt_name, default_val|
   OPTS[opt_name] = ENV[env_name] ? ENV[env_name].to_i : default_val
 end
+
+puts "Current-run Options:\n#{JSON.pretty_generate OPTS}\n\n"
 
 # Generate run arrays as the power set of (1..num_runs) x [:rails, :rack] x ruby_versions
 runs = OPTS[:ruby_versions].flat_map do |rv|
@@ -54,14 +67,27 @@ puts "Random seed: #{OPTS[:random_seed]}"
 srand(OPTS[:random_seed])
 runs = runs.sample(runs.size)
 
+# Keep track of information as the runs complete
+COUNTERS = {
+  runs: 0,
+  runs_success: 0,
+  runs_failure: 0,
+  runs_errors: 0,
+}
+
 def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
-  rr_opts = nil
-  if rack_or_rails == :rack
-    rr_opts = webrick_rack_options
-  elsif rack_or_rails == :rails
-    rr_opts = webrick_rails_options
+  # This logic clearly wants to live in BenchLib. It'll happen at some point.
+  rr_opts = case [OPTS[:app_server].to_sym, rack_or_rails]
+  when [:webrick, :rack]
+    webrick_rack_options
+  when [:webrick, :rails]
+    webrick_rails_options
+  when [:puma, :rack]
+    puma_rack_options(processes: OPTS[:puma_processes], threads: OPTS[:puma_threads])
+  when [:puma, :rails]
+    puma_rails_options(processes: OPTS[:puma_processes], threads: OPTS[:puma_threads])
   else
-    raise "Rack_or_rails must be either :rack or :rails, not #{rack_or_rails.inspect}!"
+    raise "Unknown app-server/app-type combination: #{[OPTS[:app_server], rack_or_rails].inspect}"
   end
 
   opts = rr_opts.merge({
@@ -81,20 +107,42 @@ def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
 
     before_worker_cmd: "rvm use #{rvm_ruby_version} && bundle",  # Run before each batch
     bundle_gemfile: "Gemfile.#{rvm_ruby_version}",
-    extra_env: {
-      "RSB_RUN_INDEX" => run_index,
-    },
 
     # Useful for debugging, annoying for day-to-day use
-    #suppress_server_output: false,
+    suppress_server_output: OPTS[:suppress_server_output],
   })
+  # Can't include this in the merge above or it'll overwrite Puma's extra_env
+  opts[:extra_env]["RSB_RUN_INDEX"] = run_index
 
   begin
+    COUNTERS[:runs] += 1
+    env = nil
+
     Dir.chdir("#{rack_or_rails}_test_app") do
-      e = BenchmarkEnvironment.new opts
-      e.run_wrk
+      print "Benchmarking Options:\n#{JSON.pretty_generate(opts)}\n\n"
+      env = BenchmarkEnvironment.new opts
+      env.run_wrk
+    end
+
+    # Did the run generate data?
+    unless File.exist?(env.out_file)
+      raise "No data found, bail to rescue clause"
+    end
+    COUNTERS[:runs_success] += 1
+
+    # Did the run have a significant error rate?
+    run_data = JSON.parse(File.read(env.out_file))
+    error_count = run_data["requests"]["benchmark"]["errors"].values.inject(0, &:+)
+    latencies = run_data["requests"]["benchmark"]["latencies"]
+    req_count = latencies.each_slice(2).map { |a, b| b }.inject(0, &:+) # Run-length encoded array
+    error_rate = error_count.to_f / req_count
+    puts "Error rate: #{error_rate.inspect}"
+    if error_rate > 0.0001
+      COUNTERS[:runs_errors] += 1
+      print "************\n************\n\n HIGH ERROR RATE DETECTED: #{error_rate.inspect}\n\n************\n************\n"
     end
   rescue RuntimeError => exc
+    COUNTERS[:runs_failure] += 1
     puts "Caught exception in #{rack_or_rails} app: #{exc.message.inspect}"
     puts "Backtrace:\n#{exc.backtrace.join("\n")}"
     puts "#{rack_or_rails.to_s.capitalize} app for Ruby #{rvm_ruby_version.inspect} failed, but we'll keep going..."
@@ -105,3 +153,10 @@ end
 runs.each do |ruby_version, rails_or_rack, run_idx|
   run_benchmark(ruby_version, rails_or_rack, run_idx)
 end
+
+print "\n\n===================\n"
+puts "#{COUNTERS[:runs]} total runs"
+puts "#{COUNTERS[:runs_failure]} generated exceptions and/or produced no data file, and so did not complete successfully"
+puts "#{COUNTERS[:runs_errors]} completed with data but had high error rates"
+
+puts "#{COUNTERS[:runs_success] - COUNTERS[:runs_errors]}/#{COUNTERS[:runs]} completed successfully w/o high error rate"
