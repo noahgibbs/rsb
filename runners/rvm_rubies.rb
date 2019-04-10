@@ -25,10 +25,16 @@ include BenchLib::OptionsBuilder
 # RSB_WRK_CONNECTIONS: number of connections created by load-tester (default: 60)
 # RSB_URL: URL to test (default: http://127.0.0.1:PORT/static)
 
+# RSB_APP_SERVER: app server, currently 'webrick' or 'puma' (default: webrick)
+# RSB_PUMA_PROCESSES: if using Puma, number of processes (default: 4)
+# RSB_PUMA_THREADS: if using Puma, threads/process (default: 5)
+
 OPTS = {}
 
 OPTS[:ruby_versions] = ENV["RSB_RUBIES"] ? ENV["RSB_RUBIES"].split(" ").compact : %w(2.0.0-p0 2.0.0-p648 2.1.10 2.2.10 2.3.8 2.4.5 2.5.3 2.6.0)
 OPTS[:url] = ENV["RSB_URL"] || "http://127.0.0.1:PORT/static"
+OPTS[:app_server] = ENV["RSB_APP_SERVER"] ? ENV["RSB_APP_SERVER"].downcase : "webrick"
+raise "Unknown app server: #{OPTS[:app_server].inspect}!" unless ["puma", "webrick"].include?(OPTS[:app_server])
 
 # Integer environment parameters
 [
@@ -38,6 +44,8 @@ OPTS[:url] = ENV["RSB_URL"] || "http://127.0.0.1:PORT/static"
   ["RSB_DURATION", :benchmark_seconds, 120],
   ["RSB_WRK_CONCURRENCY", :wrk_concurrency, 1],
   ["RSB_WRK_CONNECTIONS", :wrk_connections, 60],
+  ["RSB_PUMA_PROCESSES", :puma_processes, 4],
+  ["RSB_PUMA_THREADS", :puma_processes, 5],
 ].each do |env_name, opt_name, default_val|
   OPTS[opt_name] = ENV[env_name] ? ENV[env_name].to_i : default_val
 end
@@ -55,13 +63,18 @@ srand(OPTS[:random_seed])
 runs = runs.sample(runs.size)
 
 def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
-  rr_opts = nil
-  if rack_or_rails == :rack
-    rr_opts = webrick_rack_options
-  elsif rack_or_rails == :rails
-    rr_opts = webrick_rails_options
+  # This logic clearly wants to live in BenchLib. It'll happen at some point.
+  rr_opts = case [OPTS[:app_server].to_sym, rack_or_rails]
+  when [:webrick, :rack]
+    webrick_rack_options
+  when [:webrick, :rails]
+    webrick_rails_options
+  when [:puma, :rack]
+    puma_rack_options
+  when [:puma, :rails]
+    puma_rails_options
   else
-    raise "Rack_or_rails must be either :rack or :rails, not #{rack_or_rails.inspect}!"
+    raise "Unknown app-server/app-type combination: #{[OPTS[:app_server], rack_or_rails].inspect}"
   end
 
   opts = rr_opts.merge({
