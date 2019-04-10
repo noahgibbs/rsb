@@ -9,72 +9,89 @@
 
 require_relative "../bench_lib"
 include BenchLib
+include BenchLib::OptionsBuilder
 
-ruby_versions = %w(2.0.0-p0 2.0.0-p648 2.1.10 2.2.10 2.3.8 2.4.5 2.5.3 2.6.0)
-num_runs = 10  # How many runs for each Ruby version
-random_seed = Time.now.to_i
+# This example runner is configured using environment variables.
+# If this looks awkward... Well, you can write a much simpler
+# runner by doing all your config directly in Ruby. See
+# current_ruby.rb in this directory for an example.
 
-# Generate run arrays as the power set of (1..num_runs) x [:rails, :rack] x ruby_versions
-runs = ruby_versions.flat_map do |rv|
-  [:rails, :rack].flat_map { |rr| (1..(num_runs)).map { |run_idx| [ rv, rr, run_idx ] } }
+# RSB_RUBIES: if set, use this space-separated list of RVM rubies instead of the "canonical" CRubies
+# RSB_NUM_RUNS: number of runs/Ruby (default 10)
+# RSB_RANDOM_SEED: random seed for randomizing order of trials (optional)
+# RSB_DURATION: number of seconds to load-test for (default: 120)
+# RSB_WARMUP: number of seconds of warmup load-testing (default: 15)
+# RSB_WRK_CONCURRENCY: number of concurrent load-test connections active (default: 1)
+# RSB_WRK_CONNECTIONS: number of connections created by load-tester (default: 60)
+# RSB_URL: URL to test (default: http://127.0.0.1:PORT/static)
+
+OPTS = {}
+
+OPTS[:ruby_versions] = ENV["RSB_RUBIES"] ? ENV["RSB_RUBIES"].split(" ").compact : %w(2.0.0-p0 2.0.0-p648 2.1.10 2.2.10 2.3.8 2.4.5 2.5.3 2.6.0)
+OPTS[:url] = ENV["RSB_URL"] || "http://127.0.0.1:PORT/static"
+
+# Integer environment parameters
+[
+  ["RSB_NUM_RUNS", :num_runs, 10],  # How many runs for each Ruby version
+  ["RSB_RANDOM_SEED", :random_seed, Time.now.to_i],
+  ["RSB_WARMUP", :warmup_seconds, 15],
+  ["RSB_DURATION", :benchmark_seconds, 120],
+  ["RSB_WRK_CONCURRENCY", :wrk_concurrency, 1],
+  ["RSB_WRK_CONNECTIONS", :wrk_connections, 60],
+].each do |env_name, opt_name, default_val|
+  OPTS[opt_name] = ENV[env_name] ? ENV[env_name].to_i : default_val
 end
 
-# Randomize the order of the runs
-puts "Random seed: #{random_seed}"  # A random seed *can* allow repeatability, which you usually don't need or want
-srand(random_seed)
+# Generate run arrays as the power set of (1..num_runs) x [:rails, :rack] x ruby_versions
+runs = OPTS[:ruby_versions].flat_map do |rv|
+  [:rails, :rack].flat_map { |rr| (1..(OPTS[:num_runs])).map { |run_idx| [ rv, rr, run_idx ] } }
+end
+
+# Randomize the order of the runs.
+# A random seed can allow repeatability, which is normally only for debugging heisenbugs.
+# But I'll print it out in case you get a weird bad run and need to make it happen again.
+puts "Random seed: #{OPTS[:random_seed]}"
+srand(OPTS[:random_seed])
 runs = runs.sample(runs.size)
 
 def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
-  shared_opts = {
-      # Wrk settings
-      wrk_binary: "wrk",
-      wrk_concurrency: 1,            # This is wrk's own "concurrency" setting for number of requests in flight
-      wrk_connections: 60,           # Number of connections for wrk to create and use
-      warmup_seconds: 5,
-      benchmark_seconds: 180,
-
-      # Bundler/Rack/Gem/Env config
-      bundler_version: "1.17.3",
-      #bundle_gemfile: nil,      # If explicitly nil, don't set. If omitted, set to Gemfile.$ruby_version
-
-      :verbose => 1,
-  }
-
-  ruby_opts = {
-    before_worker:  "rvm use #{rvm_ruby_version} && bundle",  # This is run before the child process for each benchmark batch
-    bundle_gemfile: "Gemfile.#{rvm_ruby_version}",
-  }
-
+  rr_opts = nil
   if rack_or_rails == :rack
-    rr_opts = shared_opts.merge(ruby_opts).merge({
-      # Benchmarking options
-      url: "http://127.0.0.1:PORT/static",
-      out_file: File.expand_path(File.join(__dir__, "..", "data", "rsb_rack_TIMESTAMP.json")),
-
-      # Server environment options
-      server_cmd: "bundle && bundle exec rackup -p PORT",
-      server_pre_cmd: "bundle",
-      server_kill_matcher: "rackup",
-    })
+    rr_opts = webrick_rack_options
   elsif rack_or_rails == :rails
-    rr_opts = shared_opts.merge(ruby_opts).merge({
-      # Benchmarking options
-      url: "http://127.0.0.1:PORT/static",
-      out_file: File.expand_path(File.join(__dir__, "..", "data", "rsb_rails_TIMESTAMP.json")),
-
-      # Server environment options
-      server_cmd: "bundle exec rails server -p PORT",
-      server_pre_cmd: "bundle && bundle exec rake db:migrate",
-      server_kill_matcher: "rails server",
-    })
+    rr_opts = webrick_rails_options
   else
     raise "Rack_or_rails must be either :rack or :rails, not #{rack_or_rails.inspect}!"
   end
 
+  opts = rr_opts.merge({
+    # Wrk settings
+    wrk_binary: "wrk",
+    wrk_concurrency: OPTS[:wrk_concurrency],  # This is wrk's own "concurrency" setting for number of requests in flight
+    wrk_connections: OPTS[:wrk_connections],  # Number of connections for wrk to create and use
+    warmup_seconds: OPTS[:warmup_seconds],
+    benchmark_seconds: OPTS[:benchmark_seconds],
+    url: OPTS[:url],
+
+    # Bundler/Rack/Gem/Env config
+    bundler_version: "1.17.3",
+    #bundle_gemfile: nil,      # If explicitly nil, don't set. If omitted, set to Gemfile.$ruby_version
+
+    :verbose => 1,
+
+    before_worker_cmd: "rvm use #{rvm_ruby_version} && bundle",  # Run before each batch
+    bundle_gemfile: "Gemfile.#{rvm_ruby_version}",
+    extra_env: {
+      "RSB_RUN_INDEX" => run_index,
+    },
+
+    # Useful for debugging, annoying for day-to-day use
+    #suppress_server_output: false,
+  })
+
   begin
     Dir.chdir("#{rack_or_rails}_test_app") do
-      ENV["RSB_RUN_INDEX"] = run_index.to_s
-      e = BenchmarkEnvironment.new rr_opts
+      e = BenchmarkEnvironment.new opts
       e.run_wrk
     end
   rescue RuntimeError => exc
@@ -84,6 +101,7 @@ def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
   end
 end
 
+# Now for every random-ordered run, make it happen.
 runs.each do |ruby_version, rails_or_rack, run_idx|
   run_benchmark(ruby_version, rails_or_rack, run_idx)
 end
