@@ -37,7 +37,7 @@ OPTS[:ruby_versions] = ENV["RSB_RUBIES"] ? ENV["RSB_RUBIES"].split(" ").compact 
 OPTS[:url] = ENV["RSB_URL"] || "http://127.0.0.1:PORT/static"
 OPTS[:app_server] = ENV["RSB_APP_SERVER"] ? ENV["RSB_APP_SERVER"].downcase : "webrick"
 raise "Unknown app server: #{OPTS[:app_server].inspect}!" unless ["puma", "webrick"].include?(OPTS[:app_server])
-OPTS[:suppress_server_output] = ENV["RSB_DEBUG_SERVER"] ? true : false
+OPTS[:suppress_server_output] = ENV["RSB_DEBUG_SERVER"] ? false : true
 
 # Integer environment parameters
 [
@@ -66,6 +66,14 @@ end
 puts "Random seed: #{OPTS[:random_seed]}"
 srand(OPTS[:random_seed])
 runs = runs.sample(runs.size)
+
+# Keep track of information as the runs complete
+COUNTERS = {
+  runs: 0,
+  runs_success: 0,
+  runs_failure: 0,
+  runs_errors: 0,
+}
 
 def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
   # This logic clearly wants to live in BenchLib. It'll happen at some point.
@@ -108,11 +116,33 @@ def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
   })
 
   begin
+    COUNTERS[:runs] += 1
+    env = nil
+
     Dir.chdir("#{rack_or_rails}_test_app") do
-      e = BenchmarkEnvironment.new opts
-      e.run_wrk
+      env = BenchmarkEnvironment.new opts
+      env.run_wrk
+    end
+
+    # Did the run generate data?
+    unless File.exist?(env.out_file)
+      raise "No data found, bail to rescue clause"
+    end
+    COUNTERS[:runs_success] += 1
+
+    # Did the run have a significant error rate?
+    run_data = JSON.parse(File.read(env.out_file))
+    error_count = run_data["requests"]["benchmark"]["errors"].values.inject(0, &:+)
+    latencies = run_data["requests"]["benchmark"]["latencies"]
+    req_count = latencies.each_slice(2).map { |a, b| b }.inject(0, &:+) # Run-length encoded array
+    error_rate = error_count.to_f / req_count
+    puts "Error rate: #{error_rate.inspect}"
+    if error_rate > 0.0001
+      COUNTERS[:runs_errors] += 1
+      print "************\n************\n\n HIGH ERROR RATE DETECTED: #{error_rate.inspect}\n\n************\n************\n"
     end
   rescue RuntimeError => exc
+    COUNTERS[:runs_failure] += 1
     puts "Caught exception in #{rack_or_rails} app: #{exc.message.inspect}"
     puts "Backtrace:\n#{exc.backtrace.join("\n")}"
     puts "#{rack_or_rails.to_s.capitalize} app for Ruby #{rvm_ruby_version.inspect} failed, but we'll keep going..."
@@ -123,3 +153,10 @@ end
 runs.each do |ruby_version, rails_or_rack, run_idx|
   run_benchmark(ruby_version, rails_or_rack, run_idx)
 end
+
+print "\n\n===================\n"
+puts "#{COUNTERS[:runs]} total runs"
+puts "#{COUNTERS[:runs_failure]} generated exceptions and/or produced no data file, and so did not complete successfully"
+puts "#{COUNTERS[:runs_errors]} completed with data but had high error rates"
+
+puts "#{COUNTERS[:runs_success] - COUNTERS[:runs_errors]}/#{COUNTERS[:runs]} completed successfully w/o high error rate"
