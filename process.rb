@@ -133,7 +133,7 @@ INPUT_FILES.each do |f|
   req_rates_by_cohort[cohort].concat req_rates
 
   throughput_by_cohort[cohort] ||= []
-  throughput_by_cohort[cohort].push (latencies.size / duration)
+  throughput_by_cohort[cohort].push (latencies.size.to_f / duration)
 
   errors_by_cohort[cohort] ||= []
   errors_by_cohort[cohort].push errors
@@ -162,9 +162,10 @@ def array_variance(arr)
   n = arr.size
   return nil if arr.empty? || n < 2
 
-  ex = ex2 = 0
+  ex = ex2 = 0.0
+  arr0 = arr[0].to_f
   arr.each do |x|
-    diff = x - arr[0]
+    diff = x - arr0
     ex += diff
     ex2 += diff * diff
   end
