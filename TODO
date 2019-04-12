@@ -1,6 +1,8 @@
 ## Bugs
 
 * Packer build isn't getting wrk into /usr/local/bin properly on Ubuntu
+* Bump WRK_CONCURRENCY default above 1 in RVM runner - that's a terrible
+  default.
 
 ## Features We Could Really Use
 
@@ -11,5 +13,4 @@
 
 * App server
 * Number of warmup iterations
-* Concurrency of requests
 * JRuby, maybe others like TruffleRuby or Rubinius
