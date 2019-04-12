@@ -17,6 +17,7 @@
 # Configuration Environment Variables:
 
 # RSB_RUBIES: if set, use this space-separated list of RVM rubies instead of the "canonical" CRubies
+# RSB_FRAMEWORKS: if set to "rails" or "rack", only use that one instead of both. Can also be set to "rails rack" or "rack rails" for default behavior.
 # RSB_NUM_RUNS: number of runs/Ruby (default 10)
 # RSB_RANDOM_SEED: random seed for randomizing order of trials (optional)
 # RSB_DURATION: number of seconds to load-test for (default: 120)
@@ -31,11 +32,20 @@
 
 # RSB_DEBUG_SERVER: if true, show server output instead of suppressing it. Some errors are fine, others not... :-/
 
+KNOWN_ENV_VARS = [
+  "RSB_RUBIES", "RSB_FRAMEWORKS", "RSB_NUM_RUNS", "RSB_RANDOM_SEED", "RSB_DURATION", "RSB_WARMUP",
+  "RSB_WRK_CONCURRENCY", "RSB_WRK_CONNECTIONS", "RSB_URL", "RSB_APP_SERVER", "RSB_PUMA_PROCESSES",
+  "RSB_PUMA_THREADS", "RSB_DEBUG_SERVER"
+]
+
 require_relative "../bench_lib"
 include BenchLib
 include BenchLib::OptionsBuilder
 
 OPTS = {}
+
+OPTS[:frameworks] = ENV["RSB_FRAMEWORKS"] ? ENV["RSB_FRAMEWORKS"].split(" ").compact : %w(rails rack)
+OPTS[:frameworks] = OPTS[:frameworks].map(&:to_sym)
 
 OPTS[:ruby_versions] = ENV["RSB_RUBIES"] ? ENV["RSB_RUBIES"].split(" ").compact : %w(2.0.0-p0 2.0.0-p648 2.1.10 2.2.10 2.3.8 2.4.5 2.5.3 2.6.0)
 OPTS[:url] = ENV["RSB_URL"] || "http://127.0.0.1:PORT/static"
@@ -57,11 +67,18 @@ OPTS[:suppress_server_output] = ENV["RSB_DEBUG_SERVER"] ? false : true
   OPTS[opt_name] = ENV[env_name] ? ENV[env_name].to_i : default_val
 end
 
+rsb_env_keys = ENV.keys.grep(/^RSB_/)
+unknown_keys = rsb_env_keys - KNOWN_ENV_VARS
+unless unknown_keys.empty?
+  puts "WARNING: Unknown environment variables starting with RSB_: #{unknown_keys.inspect}..."
+  puts "WARNING: Settings in these variables WILL NOT have any effect on RSB's behavior."
+end
+
 puts "Current-run Options:\n#{JSON.pretty_generate OPTS}\n\n"
 
-# Generate run arrays as the power set of (1..num_runs) x [:rails, :rack] x ruby_versions
+# Generate run arrays as the power set of (1..num_runs) x frameworks x ruby_versions
 runs = OPTS[:ruby_versions].flat_map do |rv|
-  [:rails, :rack].flat_map { |rr| (1..(OPTS[:num_runs])).map { |run_idx| [ rv, rr, run_idx ] } }
+  OPTS[:frameworks].flat_map { |rr| (1..(OPTS[:num_runs])).map { |run_idx| [ rv, rr, run_idx ] } }
 end
 
 # Randomize the order of the runs.
