@@ -1,22 +1,23 @@
 #!/usr/bin/env ruby
 
-# This is both an example of a Ruby-based runner, and a way to run the benchmark for all the
-# current "blessed" test Rubies - one per minor version of Ruby starting with 2.0.0, plus 2.0.0p0 itself
-# as the baseline.
+# This is both an example of a Ruby-based runner, and a way to run the
+# benchmark for all the current "blessed" test Rubies - one per minor
+# version of Ruby starting with 2.0.0, plus 2.0.0p0 itself as the
+# baseline.
 
-# For this, I just provide a set of options in Ruby instead of trying to use the command line to set up the
-# quite large configuration.
+# This runner is configured using environment variables. If this looks
+# awkward for simple cases, keep in mind that you can write a much
+# simpler runner by doing all your config directly in Ruby. See
+# current_ruby.rb in this directory for an example.
 
-require_relative "../bench_lib"
-include BenchLib
-include BenchLib::OptionsBuilder
+# This is also an example of a runner that is error-tolerant but
+# error-aware. That's not a good default for every case, but it can be
+# very useful for large batches and long runs.
 
-# This example runner is configured using environment variables.
-# If this looks awkward for simple cases... Well, you can write
-# a much simpler runner by doing all your config directly in Ruby.
-# See current_ruby.rb in this directory for an example.
+# Configuration Environment Variables:
 
 # RSB_RUBIES: if set, use this space-separated list of RVM rubies instead of the "canonical" CRubies
+# RSB_FRAMEWORKS: if set to "rails" or "rack", only use that one instead of both. Can also be set to "rails rack" or "rack rails" for default behavior.
 # RSB_NUM_RUNS: number of runs/Ruby (default 10)
 # RSB_RANDOM_SEED: random seed for randomizing order of trials (optional)
 # RSB_DURATION: number of seconds to load-test for (default: 120)
@@ -31,12 +32,25 @@ include BenchLib::OptionsBuilder
 
 # RSB_DEBUG_SERVER: if true, show server output instead of suppressing it. Some errors are fine, others not... :-/
 
+KNOWN_ENV_VARS = [
+  "RSB_RUBIES", "RSB_FRAMEWORKS", "RSB_NUM_RUNS", "RSB_RANDOM_SEED", "RSB_DURATION", "RSB_WARMUP",
+  "RSB_WRK_CONCURRENCY", "RSB_WRK_CONNECTIONS", "RSB_URL", "RSB_APP_SERVER", "RSB_PUMA_PROCESSES",
+  "RSB_PUMA_THREADS", "RSB_DEBUG_SERVER"
+]
+
+require_relative "../bench_lib"
+include BenchLib
+include BenchLib::OptionsBuilder
+
 OPTS = {}
+
+OPTS[:frameworks] = ENV["RSB_FRAMEWORKS"] ? ENV["RSB_FRAMEWORKS"].split(" ").compact : %w(rails rack)
+OPTS[:frameworks] = OPTS[:frameworks].map(&:to_sym)
 
 OPTS[:ruby_versions] = ENV["RSB_RUBIES"] ? ENV["RSB_RUBIES"].split(" ").compact : %w(2.0.0-p0 2.0.0-p648 2.1.10 2.2.10 2.3.8 2.4.5 2.5.3 2.6.0)
 OPTS[:url] = ENV["RSB_URL"] || "http://127.0.0.1:PORT/static"
-OPTS[:app_server] = ENV["RSB_APP_SERVER"] ? ENV["RSB_APP_SERVER"].downcase : "webrick"
-raise "Unknown app server: #{OPTS[:app_server].inspect}!" unless ["puma", "webrick"].include?(OPTS[:app_server])
+OPTS[:app_server] = (ENV["RSB_APP_SERVER"] ? ENV["RSB_APP_SERVER"].downcase : "webrick").to_sym
+raise "Unknown app server: #{OPTS[:app_server].inspect}!" unless BenchLib::OptionsBuilder::APP_SERVERS.include?(OPTS[:app_server])
 OPTS[:suppress_server_output] = ENV["RSB_DEBUG_SERVER"] ? false : true
 
 # Integer environment parameters
@@ -53,11 +67,18 @@ OPTS[:suppress_server_output] = ENV["RSB_DEBUG_SERVER"] ? false : true
   OPTS[opt_name] = ENV[env_name] ? ENV[env_name].to_i : default_val
 end
 
+rsb_env_keys = ENV.keys.grep(/^RSB_/)
+unknown_keys = rsb_env_keys - KNOWN_ENV_VARS
+unless unknown_keys.empty?
+  puts "WARNING: Unknown environment variables starting with RSB_: #{unknown_keys.inspect}..."
+  puts "WARNING: Settings in these variables WILL NOT have any effect on RSB's behavior."
+end
+
 puts "Current-run Options:\n#{JSON.pretty_generate OPTS}\n\n"
 
-# Generate run arrays as the power set of (1..num_runs) x [:rails, :rack] x ruby_versions
+# Generate run arrays as the power set of (1..num_runs) x frameworks x ruby_versions
 runs = OPTS[:ruby_versions].flat_map do |rv|
-  [:rails, :rack].flat_map { |rr| (1..(OPTS[:num_runs])).map { |run_idx| [ rv, rr, run_idx ] } }
+  OPTS[:frameworks].flat_map { |rr| (1..(OPTS[:num_runs])).map { |run_idx| [ rv, rr, run_idx ] } }
 end
 
 # Randomize the order of the runs.
@@ -76,19 +97,7 @@ COUNTERS = {
 }
 
 def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
-  # This logic clearly wants to live in BenchLib. It'll happen at some point.
-  rr_opts = case [OPTS[:app_server].to_sym, rack_or_rails]
-  when [:webrick, :rack]
-    webrick_rack_options
-  when [:webrick, :rails]
-    webrick_rails_options
-  when [:puma, :rack]
-    puma_rack_options(processes: OPTS[:puma_processes], threads: OPTS[:puma_threads])
-  when [:puma, :rails]
-    puma_rails_options(processes: OPTS[:puma_processes], threads: OPTS[:puma_threads])
-  else
-    raise "Unknown app-server/app-type combination: #{[OPTS[:app_server], rack_or_rails].inspect}"
-  end
+  rr_opts = options_by_framework_and_server(rack_or_rails, OPTS[:app_server])
 
   opts = rr_opts.merge({
     # Wrk settings
@@ -111,6 +120,7 @@ def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
     # Useful for debugging, annoying for day-to-day use
     suppress_server_output: OPTS[:suppress_server_output],
   })
+  opts[:extra_env] ||= {}
   # Can't include this in the merge above or it'll overwrite Puma's extra_env
   opts[:extra_env]["RSB_RUN_INDEX"] = run_index
 

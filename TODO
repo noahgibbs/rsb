@@ -1,11 +1,11 @@
 ## Bugs
 
 * Packer build isn't getting wrk into /usr/local/bin properly on Ubuntu
-* Automatically show error rate after benchmark run
 
 ## Features We Could Really Use
 
 * Packer build for image: preinstall gems on all Ruby versions
+* Thin and Unicorn support
 
 ## Things to Productively Benchmark
 

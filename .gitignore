@@ -11,3 +11,4 @@ widget_tracker/passenger.*.pid*
 **/benchmark_output_*.txt
 **/warmup_output_*.txt
 **/process_output.json
+rack_test_app/benchmark.log
