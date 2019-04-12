@@ -26,16 +26,16 @@
 # RSB_WRK_CONNECTIONS: number of connections created by load-tester (default: 60)
 # RSB_URL: URL to test (default: http://127.0.0.1:PORT/static)
 
-# RSB_APP_SERVER: app server, currently 'webrick' or 'puma' (default: webrick)
-# RSB_PUMA_PROCESSES: if using Puma, number of processes (default: 4)
-# RSB_PUMA_THREADS: if using Puma, threads/process (default: 5)
+# RSB_APP_SERVER: app server, currently 'webrick' or 'puma' (default: puma)
+# RSB_PROCESSES: number of processes (default: 1)
+# RSB_THREADS: number of threads per process (default: 1)
 
 # RSB_DEBUG_SERVER: if true, show server output instead of suppressing it. Some errors are fine, others not... :-/
 
 KNOWN_ENV_VARS = [
   "RSB_RUBIES", "RSB_FRAMEWORKS", "RSB_NUM_RUNS", "RSB_RANDOM_SEED", "RSB_DURATION", "RSB_WARMUP",
-  "RSB_WRK_CONCURRENCY", "RSB_WRK_CONNECTIONS", "RSB_URL", "RSB_APP_SERVER", "RSB_PUMA_PROCESSES",
-  "RSB_PUMA_THREADS", "RSB_DEBUG_SERVER"
+  "RSB_WRK_CONCURRENCY", "RSB_WRK_CONNECTIONS", "RSB_URL", "RSB_APP_SERVER", "RSB_PROCESSES",
+  "RSB_THREADS", "RSB_DEBUG_SERVER"
 ]
 
 require_relative "../bench_lib"
@@ -49,7 +49,7 @@ OPTS[:frameworks] = OPTS[:frameworks].map(&:to_sym)
 
 OPTS[:ruby_versions] = ENV["RSB_RUBIES"] ? ENV["RSB_RUBIES"].split(" ").compact : %w(2.0.0-p0 2.0.0-p648 2.1.10 2.2.10 2.3.8 2.4.5 2.5.3 2.6.0)
 OPTS[:url] = ENV["RSB_URL"] || "http://127.0.0.1:PORT/static"
-OPTS[:app_server] = (ENV["RSB_APP_SERVER"] ? ENV["RSB_APP_SERVER"].downcase : "webrick").to_sym
+OPTS[:app_server] = (ENV["RSB_APP_SERVER"] ? ENV["RSB_APP_SERVER"].downcase : "puma").to_sym
 raise "Unknown app server: #{OPTS[:app_server].inspect}!" unless BenchLib::OptionsBuilder::APP_SERVERS.include?(OPTS[:app_server])
 OPTS[:suppress_server_output] = ENV["RSB_DEBUG_SERVER"] ? false : true
 
@@ -61,8 +61,8 @@ OPTS[:suppress_server_output] = ENV["RSB_DEBUG_SERVER"] ? false : true
   ["RSB_DURATION", :benchmark_seconds, 120],
   ["RSB_WRK_CONCURRENCY", :wrk_concurrency, 1],
   ["RSB_WRK_CONNECTIONS", :wrk_connections, 60],
-  ["RSB_PUMA_PROCESSES", :puma_processes, 4],
-  ["RSB_PUMA_THREADS", :puma_threads, 5],
+  ["RSB_PROCESSES", :processes, 1],
+  ["RSB_THREADS", :threads, 1],
 ].each do |env_name, opt_name, default_val|
   OPTS[opt_name] = ENV[env_name] ? ENV[env_name].to_i : default_val
 end
@@ -97,7 +97,7 @@ COUNTERS = {
 }
 
 def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
-  rr_opts = options_by_framework_and_server(rack_or_rails, OPTS[:app_server])
+  rr_opts = options_by_framework_and_server(rack_or_rails, OPTS[:app_server], processes: OPTS[:processes], OPTS[:threads])
 
   opts = rr_opts.merge({
     # Wrk settings

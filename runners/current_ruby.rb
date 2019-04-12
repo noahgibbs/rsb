@@ -30,6 +30,7 @@ opts = {
   verbose: 1,
 }
 
+# No concurrency specified
 opts.merge! options_by_framework_and_server(which_app, :webrick)
 
 # Here's the meat of how to turn those options into benchmark output
