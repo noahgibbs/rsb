@@ -50,7 +50,23 @@ directory of data files, you can often type something like
 for each batch of data to analyze each Ruby's subset of the data
 separately.
 
-## Canonical Configurations
+### JRuby
+
+JRuby is intended to be a target Ruby configuration for RSB, but not everything is working yet.
+
+Here are some restrictions:
+
+* JRuby can be specified as a *target* configuration, such as in
+  RSB_RUBIES in runners/rvm_rubies.rb. However, some of the test
+  harness can't run in JRuby because it doesn't have "fork".
+  By starting the test harness from a CRuby implementation, you
+  can still check JRuby's speed.
+
+* JRuby uses its own SQLite3 adapter. This will give slightly
+  different performance than the sqlite3 gem, which isn't
+  supported in JRuby.
+
+### Canonical Configurations
 
 RSB will cheerfully run with whatever concurrency you like. However,
 here are some useful configurations to use or test:
@@ -62,7 +78,7 @@ here are some useful configurations to use or test:
 * 1 Process, N Threads: this is usually best for JVM-based Ruby implementations
   like JRuby or TruffleRuby
 
-## Threads and Concurrency
+### Threads and Concurrency
 
 An interesting property of RSB, especially compared to RRB or other large
 Rails apps, is that it isn't very threading-friendly on CRuby. The GIL
