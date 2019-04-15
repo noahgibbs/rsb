@@ -426,6 +426,10 @@ module BenchLib
     def puma_rails_options(processes: 1, threads: 1)
       worker_opts = processes > 1 ? "-w #{processes}" : ""
 
+      if processes > 1 && RUBY_PLATFORM == "java"
+        raise "Puma's worker mode isn't supported in JRuby, which can't fork processes!"
+      end
+
       {
         # Benchmarking options
         out_file: File.expand_path(File.join(__dir__, "data", "rsb_rails_TIMESTAMP.json")),
@@ -444,6 +448,10 @@ module BenchLib
 
     def puma_rack_options(processes: 1, threads: 1)
       worker_opts = processes > 1 ? "-w #{processes}" : ""
+
+      if processes > 1 && RUBY_PLATFORM == "java"
+        raise "Puma's worker mode isn't supported in JRuby, which can't fork processes!"
+      end
 
       {
         # Benchmarking options
