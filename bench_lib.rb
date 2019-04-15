@@ -443,12 +443,14 @@ module BenchLib
     end
 
     def puma_rack_options(processes: 1, threads: 1)
+      worker_opts = processes > 1 ? "-w #{processes}" : ""
+
       {
         # Benchmarking options
         out_file: File.expand_path(File.join(__dir__, "data", "rsb_rack_TIMESTAMP.json")),
 
         # Server environment options
-        server_cmd: "bundle exec puma -p PORT -t #{threads}:#{threads} -w #{processes} --tag puma_rsb_rack_#{Process.pid}",
+        server_cmd: "bundle exec puma -p PORT -t #{threads}:#{threads} #{worker_opts} --tag puma_rsb_rack_#{Process.pid}",
         server_pre_cmd: "bundle",
         server_kill_matcher: "puma_rsb_rack_#{Process.pid}",
 
