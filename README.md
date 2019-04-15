@@ -26,9 +26,29 @@ dependencies and more repeatability? Then RSB may be for you.
 
 ## Usage
 
+### Runners
+
 RSB uses a number of "runner" scripts to test different
 configurations. For most uses of RSB, you'll run one. For more
 customized uses of RSB, you'll make your own runner script.
+
+The file runners/rvm_rubies.rb is the most comprehensive as of this
+writing - see the beginning of the file for documentation. It runs
+primarily from environment variables.
+
+### Analysis
+
+After the runner completes, you should have a directory of data files,
+which can be used directly or analyzed. The file process.rb in the
+root directory of this repository performs cohort-based analysis, good
+for checking simple A/B questions of the form, "did this change speed
+up Ruby or slow it down? By how much?"
+
+For instance, to compare the speed of many different Rubies using a
+directory of data files, you can often type something like
+"../process.rb -c 'rvm current'", which will use the recorded RVM Ruby
+for each batch of data to analyze each Ruby's subset of the data
+separately.
 
 ## Canonical Configurations
 
