@@ -18,7 +18,11 @@ module BenchLib
   def csystem(cmd, err, debug: true, fail_ok: false, console: true)
     print "Running command: #{cmd.inspect}\n" if debug
     if console
-      system(cmd, out: $stdout, err: $stderr)
+      if RUBY_PLATFORM == "java"
+        system(cmd)
+      else
+        system(cmd, out: $stdout, err: $stderr)
+      end
     else
       out = `#{cmd}`
     end
