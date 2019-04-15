@@ -8,6 +8,7 @@
 
 * Packer build for image: preinstall gems on all Ruby versions
 * Thin and Unicorn support
+* SQlite in-memory setup
 
 ## Things to Productively Benchmark
 
