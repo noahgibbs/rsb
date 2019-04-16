@@ -26,6 +26,26 @@ dependencies and more repeatability? Then RSB may be for you.
 
 ## Usage
 
+### Quick Version
+
+There are a small, specific number of Rubies that are already supported (have a Gemfile.lock.) You can see which ones by looking in the rails_test_app or rack_test_app directory - but they include 2.0.0p0, 2.0.0p648, 2.1.0, 2.2.10, 2.3.8, 2.4.5, 2.5.3 and 2.6.0. JRuby 9.2.0.0 is also partially supported - see below in this file for more details.
+
+You can add support for another Ruby by adding a Gemfile for it - see the existing Gemfiles for examples, but they're quite simple.
+
+If you want to check the current speed of a benchmark on your current machine, you can do it fairly simply:
+
+```bash
+./runners/current_ruby.rb
+```
+
+If you want to change settings, you can do it in that runner script.
+
+You can also run with more settings changes and multiple different Rubies if you have RVM installed - see runners/rvm_rubies.rb for a full list of environment variables to set parameters. Here is an example, specifying many of them:
+
+```bash
+RSB_NUM_RUNS=10 RSB_RUBIES="2.6.0 2.4.5 2.0.0-p0" RSB_DURATION=180 RSB_WARMUP=20 RSB_FRAMEWORKS=rack RSB_APP_SERVER=puma RSB_PROCESSES=1 RSB_THREADS=1 ./runners/rvm_rubies.rb
+```
+
 ### Runners
 
 RSB uses a number of "runner" scripts to test different
