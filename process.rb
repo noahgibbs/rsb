@@ -185,6 +185,8 @@ req_time_by_cohort.keys.sort.each do |cohort|
     request_percentiles: {},
     rate_percentiles: {},
     throughputs: throughputs,
+    cohort_samples: latencies.size,
+    cohort_batches: throughputs.size,
   }
   if include_raw_data
     process_output[:processed][:cohort][cohort][:latencies] = latencies
