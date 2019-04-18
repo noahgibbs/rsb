@@ -30,12 +30,13 @@
 # RSB_PROCESSES: number of processes (default: 1)
 # RSB_THREADS: number of threads per process (default: 1)
 
+# RSB_CLOSE_CONNECTION: if true, specify the connection-close header when using wrk; needed for good JRuby performance on Puma
 # RSB_DEBUG_SERVER: if true, show server output instead of suppressing it. Some errors are fine, others not... :-/
 
 KNOWN_ENV_VARS = [
   "RSB_RUBIES", "RSB_FRAMEWORKS", "RSB_NUM_RUNS", "RSB_RANDOM_SEED", "RSB_DURATION", "RSB_WARMUP",
   "RSB_WRK_CONCURRENCY", "RSB_WRK_CONNECTIONS", "RSB_URL", "RSB_APP_SERVER", "RSB_PROCESSES",
-  "RSB_THREADS", "RSB_DEBUG_SERVER"
+  "RSB_THREADS", "RSB_DEBUG_SERVER", "RSB_CLOSE_CONNECTION"
 ]
 
 require_relative "../bench_lib"
@@ -52,6 +53,7 @@ OPTS[:url] = ENV["RSB_URL"] || "http://127.0.0.1:PORT/static"
 OPTS[:app_server] = (ENV["RSB_APP_SERVER"] ? ENV["RSB_APP_SERVER"].downcase : "puma").to_sym
 raise "Unknown app server: #{OPTS[:app_server].inspect}!" unless BenchLib::OptionsBuilder::APP_SERVERS.include?(OPTS[:app_server])
 OPTS[:suppress_server_output] = ENV["RSB_DEBUG_SERVER"] ? false : true
+OPTS[:wrk_close_connection] = ENV["RSB_CLOSE_CONNECTION"] ? true : false
 
 # Integer environment parameters
 [

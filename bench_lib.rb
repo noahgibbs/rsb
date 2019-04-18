@@ -144,6 +144,7 @@ module BenchLib
       warmup_seconds: 5,
       benchmark_seconds: 180,
       wrk_script_location: "./final_report.lua",  # This is the lua script for generating the final report, relative to this source file
+      wrk_close_connection: false,
 
       # Runner Config
       before_worker_cmd: "bundle",
@@ -324,11 +325,12 @@ module BenchLib
 
       server_env.with_url_available do
         wrk_script_location = File.join(__dir__, @settings[:wrk_script_location])
+        wrk_close_header_opts = @settings[:wrk_close_connection] ? '--header "Connection: Close"' : ""
 
         # Warmup iterations first, if there are any
         if @settings[:warmup_seconds] > 0
           verbose "Starting warmup iterations"
-          csystem("#{@settings[:wrk_binary]} -t#{@settings[:wrk_concurrency]} -c#{@settings[:wrk_connections]} -d#{@settings[:warmup_seconds]}s -s#{wrk_script_location} --latency #{@settings[:url]} > warmup_output_#{@settings[:timestamp]}.txt", "Couldn't run warmup iterations!")
+          csystem("#{@settings[:wrk_binary]} -t#{@settings[:wrk_concurrency]} -c#{@settings[:wrk_connections]} -d#{@settings[:warmup_seconds]}s -s#{wrk_script_location} #{wrk_close_header_opts} --latency #{@settings[:url]} > warmup_output_#{@settings[:timestamp]}.txt", "Couldn't run warmup iterations!")
         else
           verbose "No warmup iterations..."
         end

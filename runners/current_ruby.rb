@@ -21,6 +21,7 @@ ruby_version = `ruby -e "puts RUBY_VERSION"`.chomp
 opts = {
   wrk_concurrency: 1,
   wrk_connections: 10,
+  wrk_close_connection: true,
   warmup_seconds: 5,
   benchmark_seconds: 20,
   url: "http://127.0.0.1:PORT/static",
