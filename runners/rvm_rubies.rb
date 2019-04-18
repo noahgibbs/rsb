@@ -106,6 +106,7 @@ def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
     wrk_binary: "wrk",
     wrk_concurrency: OPTS[:wrk_concurrency],  # This is wrk's own "concurrency" setting for number of requests in flight
     wrk_connections: OPTS[:wrk_connections],  # Number of connections for wrk to create and use
+    wrk_close_connection: OPTS[:wrk_close_connection],
     warmup_seconds: OPTS[:warmup_seconds],
     benchmark_seconds: OPTS[:benchmark_seconds],
     url: OPTS[:url],
