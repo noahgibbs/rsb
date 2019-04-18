@@ -336,7 +336,7 @@ module BenchLib
         end
 
         verbose "Starting real benchmark iterations"
-        csystem("#{@settings[:wrk_binary]} -t#{@settings[:wrk_concurrency]} -c#{@settings[:wrk_connections]} -d#{@settings[:benchmark_seconds]}s -s#{wrk_script_location} --latency #{@settings[:url]} > benchmark_output_#{@settings[:timestamp]}.txt", "Couldn't run warmup iterations!")
+        csystem("#{@settings[:wrk_binary]} -t#{@settings[:wrk_concurrency]} -c#{@settings[:wrk_connections]} -d#{@settings[:benchmark_seconds]}s -s#{wrk_script_location} #{wrk_close_header_opts}--latency #{@settings[:url]} > benchmark_output_#{@settings[:timestamp]}.txt", "Couldn't run warmup iterations!")
       end
 
       raise "URL #{@settings[:url].inspect} should not be available after the kill command (#{@settings[:server_kill_matcher].inspect})!" if server_env.url_available?
