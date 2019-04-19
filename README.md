@@ -70,6 +70,37 @@ directory of data files, you can often type something like
 for each batch of data to analyze each Ruby's subset of the data
 separately.
 
+### Experiments
+
+The analysis above is okay. You can keep data files in multiple
+directories, analyze them separately and compare. But that's not
+always a reasonable choice, and often you'd rather do it differently.
+
+The RSB output files record any environment variable containing
+"RUBY", "RSB" or "GEM" as relevant. If you want to conduct an
+experiment between multiple configurations, it's often a good idea to
+set an environment variable starting with RSB so that you can separate
+the relevant data files afterward. For instance, if you set
+"RSB_MY_EXP_CONFIG=7" beforehand, then that setting would propagate to
+the data file since the environment variable contains "RSB".
+
+To group them by the value of that variable afterward, set up cohorts
+using that variable. For instance:
+
+```
+cd my_data_dir
+~/src/rsb/process.rb -c "RUBY_VERSION,env-RSB_MY_EXP_CONFIG"
+```
+
+The above example would group the data into cohorts according to which
+Ruby version was used and the value of the environment variable
+RSB_MY_EXP_CONFIG. You can then compare the latencies, throughputs
+or other relevant data.
+
+If for some reason setting an environment variable is inappropriate to
+your use case, you'll need to separate the relevant data in some other
+way.
+
 ### JRuby
 
 JRuby is intended to be a target Ruby configuration for RSB, but not everything is working yet.
