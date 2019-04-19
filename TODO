@@ -2,13 +2,15 @@
 
 * Packer build isn't getting wrk into /usr/local/bin properly on Ubuntu
 * Bump WRK_CONCURRENCY default above 1 in RVM runner - that's a terrible
-  default.
+  default. Research WRK's concurrency and exactly what it controls.
 
 ## Features We Could Really Use
 
 * Packer build for image: preinstall gems on all Ruby versions
 * Thin and Unicorn support
 * SQlite in-memory setup
+* Automatic Gemfiles for "unremarkable" Ruby versions that only
+  include Gemfile.common. How to handle Gemfile.lock?
 
 ## Things to Productively Benchmark
 
