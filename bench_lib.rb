@@ -355,7 +355,7 @@ module BenchLib
         f.write json_text
       end
 
-      verbose "All data files written successfully."
+      verbose "Wrote data file successfully: #{@settings[:out_file].inspect}"
     end
 
   end
