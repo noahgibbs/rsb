@@ -51,7 +51,7 @@ OPTS[:frameworks] = OPTS[:frameworks].map(&:to_sym)
 OPTS[:ruby_versions] = ENV["RSB_RUBIES"] ? ENV["RSB_RUBIES"].split(" ").compact : %w(2.0.0-p0 2.0.0-p648 2.1.10 2.2.10 2.3.8 2.4.5 2.5.3 2.6.0)
 OPTS[:url] = ENV["RSB_URL"] || "http://127.0.0.1:PORT/static"
 OPTS[:app_server] = (ENV["RSB_APP_SERVER"] ? ENV["RSB_APP_SERVER"].downcase : "puma").to_sym
-raise "Unknown app server: #{OPTS[:app_server].inspect}!" unless BenchLib::OptionsBuilder::APP_SERVERS.include?(OPTS[:app_server])
+raise "Unknown app server: #{OPTS[:app_server].inspect}, must be one of #{BenchLib::OptionsBuilder::APP_SERVERS.map(&:to_s).inspect}!" unless BenchLib::OptionsBuilder::APP_SERVERS.include?(OPTS[:app_server])
 OPTS[:suppress_server_output] = ENV["RSB_DEBUG_SERVER"] ? false : true
 OPTS[:wrk_close_connection] = ENV["RSB_CLOSE_CONNECTION"] ? true : false
 
