@@ -1,0 +1,16 @@
+{
+    "runner": {
+        "#": "Version, if present, must be 1",
+        "version": 1
+    },
+    "configurations": [
+        {
+            "batches": 1,
+            "duration": 60,
+            "warmup": 15,
+            "ruby": ["2.5.0"],
+            "framework": ["rails", "rack"],
+            "#debug_server": true
+        }
+    ]
+}
