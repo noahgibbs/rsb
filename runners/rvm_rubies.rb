@@ -54,6 +54,7 @@ OPTS[:app_server] = (ENV["RSB_APP_SERVER"] ? ENV["RSB_APP_SERVER"].downcase : "p
 raise "Unknown app server: #{OPTS[:app_server].inspect}, must be one of #{BenchLib::OptionsBuilder::APP_SERVERS.map(&:to_s).inspect}!" unless BenchLib::OptionsBuilder::APP_SERVERS.include?(OPTS[:app_server])
 OPTS[:suppress_server_output] = ENV["RSB_DEBUG_SERVER"] ? false : true
 OPTS[:wrk_close_connection] = ENV["RSB_CLOSE_CONNECTION"] ? true : false
+OPTS[:rack_env] = ENV["RACK_ENV"] || ENV["RAILS_ENV"] || "production"
 
 # Integer environment parameters
 [
