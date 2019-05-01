@@ -362,29 +362,25 @@ module BenchLib
 
   module OptionsBuilder
     FRAMEWORKS = [ :rack, :rails ]
-    APP_SERVERS = [ :webrick, :puma, :passenger ]
+    APP_SERVERS = [ :webrick, :puma, :thin, :unicorn, :passenger ]
 
     def options_by_framework_and_server(framework, server, processes: 1, threads: 1)
       raise "No such framework as #{framework.inspect} (only :rails and :rack)!" unless FRAMEWORKS.include?(framework)
       raise "No such app server as #{server.inspect} (options: #{APP_SERVERS.inspect})!" unless APP_SERVERS.include?(server)
 
-      # The giant case statement is inelegant. I'll rethink it later.
-      case [framework, server]
-      when [:rack, :webrick]
-        webrick_rack_options(processes: processes, threads: threads)
-      when [:rails, :webrick]
-        webrick_rails_options(processes: processes, threads: threads)
-      when [:rack, :puma]
-        puma_rack_options(processes: processes, threads: threads)
-      when [:rails, :puma]
-        puma_rails_options(processes: processes, threads: threads)
-      when [:rack, :passenger]
-        passenger_rack_options(processes: processes, threads: threads)
-      when [:rails, :passenger]
-        passenger_rails_options(processes: processes, threads: threads)
-      else
-        raise "Internal error: no such combination found: #{[framework, server].inspect}!"
-      end
+      # This is okay (only) because we've already validated that
+      # framework and server are one of a short list of known items.
+      method_name = "#{server}_#{framework}_options"
+
+      send(method_name, processes: processes, threads: threads)
+    end
+
+    # This generates a temporary configuration file, using the Tmpfile API, which can
+    # be used for an application server like Unicorn that may require its configuration
+    # be from a file.
+    def temp_config_file(contents)
+      t = Tmpfile.new("RSB_config_#{Process.pid}_")
+      t.to_s
     end
 
     def webrick_rails_options(processes: 1, threads: 1)
@@ -422,6 +418,100 @@ module BenchLib
         server_cmd: "bundle && bundle exec rackup -p PORT",
         server_pre_cmd: "bundle",
         server_kill_matcher: "rackup",
+      }
+    end
+
+    def unicorn_rails_options(processes: 1, threads: 1)
+      if threads > 1
+        raise "Unicorn doesn't support multiple threads!"
+      end
+
+      cf = temp_config_file(<<UNICORN_CONFIG)
+worker_processes #{processes}
+# preload_app true
+UNICORN_CONFIG
+      {
+        # Benchmarking options
+        out_file: File.expand_path(File.join(__dir__, "data", "rsb_rails_TIMESTAMP.json")),
+
+        # Server environment options
+        server_cmd: "bundle exec unicorn -p PORT --config-file #{cf}",
+        server_pre_cmd: "bundle && bundle exec rake db:migrate",
+        server_kill_matcher: "unicorn",
+
+        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
+        extra_env: {
+          "RSB_EXTRA_GEMFILES" => "Gemfile.unicorn",
+        }
+      }
+    end
+
+    def unicorn_rack_options(processes: 1, threads: 1)
+      if threads > 1
+        raise "Unicorn doesn't support multiple threads!"
+      end
+
+      cf = temp_config_file(<<UNICORN_CONFIG)
+worker_processes #{processes}
+# preload_app true
+UNICORN_CONFIG
+      {
+        # Benchmarking options
+        out_file: File.expand_path(File.join(__dir__, "data", "rsb_rack_TIMESTAMP.json")),
+
+        # Server environment options
+        server_cmd: "bundle && bundle exec unicorn -p PORT --config-file #{cf}",
+        server_pre_cmd: "bundle",
+        server_kill_matcher: "rackup",
+
+        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
+        extra_env: {
+          "RSB_EXTRA_GEMFILES" => "Gemfile.unicorn",
+        }
+      }
+    end
+
+    def thin_rails_options(processes: 1, threads: 1)
+      if processes > 1
+        raise "Thin doesn't support multiple processes!"
+      end
+      concurrency_options = threads > 1 ? "--threaded --thread-pool-size #{threads}" : ""
+
+      {
+        # Benchmarking options
+        out_file: File.expand_path(File.join(__dir__, "data", "rsb_rails_TIMESTAMP.json")),
+
+        # Server environment options
+        server_cmd: "bundle exec thin -p PORT --tag rsb-thin-#{Process.pid} #{concurrency_options}",
+        server_pre_cmd: "bundle && bundle exec rake db:migrate",
+        server_kill_matcher: "rsb-thin-#{Process.pid}",
+
+        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
+        extra_env: {
+          "RSB_EXTRA_GEMFILES" => "Gemfile.thin",
+        }
+      }
+    end
+
+    def thin_rack_options(processes: 1, threads: 1)
+      if processes > 1
+        raise "Thin doesn't support multiple threads!"
+      end
+      concurrency_options = threads > 1 ? "--threaded --thread-pool-size #{threads}" : ""
+
+      {
+        # Benchmarking options
+        out_file: File.expand_path(File.join(__dir__, "data", "rsb_rack_TIMESTAMP.json")),
+
+        # Server environment options
+        server_cmd: "bundle exec thin -p PORT --tag rsb-thin-#{Process.pid} #{concurrency_options}",
+        server_pre_cmd: "bundle",
+        server_kill_matcher: "rsb-thin-#{Process.pid}",
+
+        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
+        extra_env: {
+          "RSB_EXTRA_GEMFILES" => "Gemfile.thin",
+        }
       }
     end
 
