@@ -165,7 +165,7 @@ KNOWN_RUNNER_KEYS = [
 ]
 KNOWN_CONFIG_KEYS = [
   "ruby", "framework", "batches", "duration", "warmup", "wrk", "url", "app_server",
-  "processes", "threads", "debug_server", "close_connection", "rack_env"
+  "processes", "threads", "debug_server", "close_connection", "rack_env", "extra_env",
 ]
 
 if ARGV.size != 1
@@ -217,6 +217,7 @@ config["configurations"].each do |conf|
     rack_env: conf["rack_env"] || "production",
     processes: conf["processes"] || 1,
     threads: conf["threads"] || 1,
+    extra_env: [conf["extra_env"]].flatten(1) || [{}],
     bundler_version: conf["bundler_version"] || "1.17.3",
     wrk_concurrency: conf["wrk"]["threads"] || 1,
     wrk_connections: conf["wrk"]["connections"] || 5,
@@ -226,7 +227,6 @@ config["configurations"].each do |conf|
   check_legal_strings_in_array BenchLib::OptionsBuilder::FRAMEWORKS, opts[:framework], "Unexpected framework name(s)"
 
   opt_runs = get_runs_from_options(opts)
-  STDERR.puts "CONF:\n#{conf.inspect}\nOPTS:#{opts.inspect}\nRUNS:#{opt_runs}\n\n"
 
   runs.concat opt_runs
 end
@@ -246,42 +246,43 @@ COUNTERS = {
   runs_errors: 0,
 }
 
-def run_benchmark(opts)
-  rack_or_rails = opts[:framework]
-  rvm_ruby_version = opts[:ruby]
-  rr_opts = options_by_framework_and_server(rack_or_rails, opts[:app_server], processes: opts[:processes], threads: opts[:threads])
+def run_benchmark(orig_opts)
+  extra_env = orig_opts.delete(:extra_env) || {}  # Have to merge after getting app_server env vars
+  rr_opts = options_by_framework_and_server(orig_opts[:framework], orig_opts[:app_server], processes: orig_opts[:processes], threads: orig_opts[:threads])
 
   opts = rr_opts.merge({
     # Wrk settings
     wrk_binary: "wrk",
-    wrk_concurrency: opts[:wrk_concurrency],  # This is wrk's own "concurrency" setting for number of requests in flight
-    wrk_connections: opts[:wrk_connections],  # Number of connections for wrk to create and use
-    wrk_close_connection: opts[:wrk_close_connection],
-    warmup_seconds: opts[:warmup_seconds],
-    benchmark_seconds: opts[:benchmark_seconds],
-    url: opts[:url],
+    wrk_concurrency: orig_opts[:wrk_concurrency],  # This is wrk's own "concurrency" setting for number of requests in flight
+    wrk_connections: orig_opts[:wrk_connections],  # Number of connections for wrk to create and use
+    wrk_close_connection: orig_opts[:wrk_close_connection],
+    warmup_seconds: orig_opts[:warmup_seconds],
+    benchmark_seconds: orig_opts[:benchmark_seconds],
+    url: orig_opts[:url],
 
     # Bundler/Rack/Gem/Env config
-    bundler_version: opts[:bundler_version],
+    bundler_version: orig_opts[:bundler_version],
     #bundle_gemfile: nil,      # If explicitly nil, don't set. If omitted, set to Gemfile.$ruby_version
 
     :verbose => 1,
 
-    before_worker_cmd: "rvm use #{rvm_ruby_version} && bundle",  # Run before each batch
-    bundle_gemfile: "Gemfile.#{rvm_ruby_version}",
+    before_worker_cmd: "rvm use #{orig_opts[:ruby]} && bundle",  # Run before each batch
+    bundle_gemfile: "Gemfile.#{orig_opts[:ruby]}",
 
     # Useful for debugging, annoying for day-to-day use
-    suppress_server_output: opts[:suppress_server_output],
+    suppress_server_output: orig_opts[:suppress_server_output],
   })
   opts[:extra_env] ||= {}
+  opts[:extra_env].merge!(extra_env) # This will take precedence field-by-field, but not overwrite the hash completely
+
   # Can't include this in the merge above or it'll overwrite Puma's extra_env
-  opts[:extra_env]["RSB_RUN_INDEX"] = opts[:batch_index]
+  opts[:extra_env]["RSB_RUN_INDEX"] = orig_opts[:batch_index]
 
   begin
     COUNTERS[:runs] += 1
     env = nil # Set scope for this local
 
-    Dir.chdir("#{rack_or_rails}_test_app") do
+    Dir.chdir("#{orig_opts[:framework]}_test_app") do
       print "Benchmarking Options:\n#{JSON.pretty_generate(opts)}\n\n"
       env = BenchmarkEnvironment.new opts
       env.run_wrk
@@ -306,13 +307,13 @@ def run_benchmark(opts)
     end
   rescue RuntimeError => exc
     COUNTERS[:runs_failure] += 1
-    puts "Caught exception in #{rack_or_rails} app: #{exc.message.inspect}"
+    puts "Caught exception in #{orig_opts[:framework]} app: #{exc.message.inspect}"
     puts "Backtrace:\n#{exc.backtrace.join("\n")}"
     if config["runner"]["fail_on_error"]
       STDERR.puts "The runner is configured to fail on error, so do that."
       exit -1
     else
-      puts "#{rack_or_rails.to_s.capitalize} app for Ruby #{rvm_ruby_version.inspect} failed, but we'll keep going..."
+      puts "#{orig_opts[:framework].to_s.capitalize} app for Ruby #{orig_opts[:ruby].inspect} failed, but we'll keep going..."
     end
   end
 end
