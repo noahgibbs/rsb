@@ -121,12 +121,12 @@ end
 
 # This takes N arrays and returns every combination of
 # one element from each array.
-def power_set(arrays)
+def combination_set(arrays)
   return [] if arrays.empty?
   return arrays[0] if arrays.size == 1
 
   outer = arrays[0]
-  smaller = power_set arrays[1..-1]
+  smaller = combination_set arrays[1..-1]
 
   outer.flat_map { |item| smaller.map { |rest| [ item, *rest ] } }
 end
@@ -147,7 +147,7 @@ end
 def get_runs_from_options(opts)
   keys = opts.keys - [:batches]
   multi_keys = keys.select { |k| opts[k].respond_to?(:each) }   # && opts[k].size > 1
-  ps_multi = power_set(multi_keys.map { |mk| opts[mk] })
+  ps_multi = combination_set(multi_keys.map { |mk| opts[mk] })
 
   (1..opts[:batches]).flat_map do |batch_idx|
     ps_multi.flat_map do |opts_chosen|
