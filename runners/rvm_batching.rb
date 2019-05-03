@@ -105,32 +105,6 @@ def remove_json_comments!(obj)
   end
 end
 
-def check_legal_keys_in_hash(legal_keys, hash, err_msg)
-  illegal_keys = hash.keys - legal_keys
-  unless illegal_keys.empty?
-    raise "#{err_msg} - Unknown items: #{illegal_keys.inspect}!"
-  end
-end
-
-def check_legal_strings_in_array(legal_strings, array, err_msg)
-  illegal_strings = array - legal_strings
-  unless illegal_strings.empty?
-    raise "#{err_msg} - Unknown items: #{illegal_strings.inspect}!"
-  end
-end
-
-# This takes N arrays and returns every combination of
-# one element from each array.
-def combination_set(arrays)
-  return [] if arrays.empty?
-  return arrays[0] if arrays.size == 1
-
-  outer = arrays[0]
-  smaller = combination_set arrays[1..-1]
-
-  outer.flat_map { |item| smaller.map { |rest| [ item, *rest ] } }
-end
-
 # This method takes an options hash where some values are
 # arrays of alternatives, and the "batches" key is an integer.
 # It creates an array of hashes where
@@ -145,13 +119,15 @@ end
 # benchmark run for every hash returned, so this shouldn't
 # be a big drag on the runtime.
 def get_runs_from_options(opts)
-  keys = opts.keys - [:batches]
-  multi_keys = keys.select { |k| opts[k].respond_to?(:each) }   # && opts[k].size > 1
+  keys = opts.keys - [:batches] # Batches does a different, hardcoded thing
+  multi_keys = keys.select { |k| opts[k].is_a?(Array) }
   ps_multi = combination_set(multi_keys.map { |mk| opts[mk] })
 
   (1..opts[:batches]).flat_map do |batch_idx|
     ps_multi.flat_map do |opts_chosen|
-      chosen_hash = Hash[multi_keys.zip(opts_chosen)]
+      chosen_hash = {}
+      multi_keys.each_with_index { |k, idx| chosen_hash[k] = opts_chosen[idx] }
+      #chosen_hash = Hash[multi_keys.zip(opts_chosen)]
       opts.merge(chosen_hash).merge(:batch_index => batch_idx)
     end
   end
@@ -198,6 +174,8 @@ end
 random_seed = config["runner"]["random_seed"] ? config["runner"]["random_seed"] : Time.now.to_i
 runs = []
 
+FAIL_ON_ERROR = config["runner"]["fail_on_error"] || false
+
 config["configurations"].each do |conf|
   unless conf["ruby"]
     raise "Every configuration must specify at least one Ruby version!"
@@ -217,7 +195,7 @@ config["configurations"].each do |conf|
     rack_env: conf["rack_env"] || "production",
     processes: conf["processes"] || 1,
     threads: conf["threads"] || 1,
-    extra_env: [conf["extra_env"]].flatten(1) || [{}],
+    extra_env: conf["extra_env"] || {},
     bundler_version: conf["bundler_version"] || "1.17.3",
     wrk_concurrency: conf["wrk"]["threads"] || 1,
     wrk_connections: conf["wrk"]["connections"] || 5,
@@ -309,7 +287,7 @@ def run_benchmark(orig_opts)
     COUNTERS[:runs_failure] += 1
     puts "Caught exception in #{orig_opts[:framework]} app: #{exc.message.inspect}"
     puts "Backtrace:\n#{exc.backtrace.join("\n")}"
-    if config["runner"]["fail_on_error"]
+    if FAIL_ON_ERROR
       STDERR.puts "The runner is configured to fail on error, so do that."
       exit -1
     else

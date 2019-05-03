@@ -602,7 +602,35 @@ UNICORN_CONFIG
         }
       }
     end
+  end
 
-    # TODO: Unicorn, Thin, Passenger Enterprise
+  def check_legal_keys_in_hash(legal_keys, hash, err_msg)
+    illegal_keys = hash.keys - legal_keys
+    unless illegal_keys.empty?
+      raise "#{err_msg} - Unknown items: #{illegal_keys.inspect}!"
+    end
+  end
+
+  def check_legal_strings_in_array(legal_strings, array, err_msg)
+    illegal_strings = array - legal_strings
+    unless illegal_strings.empty?
+      raise "#{err_msg} - Unknown items: #{illegal_strings.inspect}!"
+    end
+  end
+
+  # This takes N arrays and returns every combination of
+  # one element from each array.
+  def combination_set(arrays)
+    return [] if arrays.empty?
+
+    # An array of N alternatives, but only one set, e.g. [[ "a", "b" ]]
+    return arrays[0].map { |item| [item] } if arrays.size == 1
+
+    outer = arrays[0]
+    smaller = combination_set arrays[1..-1]
+
+    #smaller.flat_map { |rest| outer.map { |item| [item, *rest] } }
+
+    outer.flat_map { |item| smaller.map { |rest| [ item ] + rest } }
   end
 end
