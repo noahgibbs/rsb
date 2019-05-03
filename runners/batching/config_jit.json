@@ -1,0 +1,17 @@
+{
+    "runner": {
+        "#": "Version, if present, must be 1",
+        "version": 1
+    },
+    "configurations": [
+        {
+            "batches": 1,
+            "duration": 60,
+            "warmup": 15,
+            "ruby": ["2.6.2"],
+            "framework": ["rails", "rack"],
+            "#debug_server": true,
+            "extra_env": [ {}, { "RUBYOPT": "--jit" } ]
+        }
+    ]
+}
