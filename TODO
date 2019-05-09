@@ -1,8 +1,6 @@
 ## Bugs
 
 * Packer build isn't getting wrk into /usr/local/bin properly on Ubuntu
-* Bump WRK_CONCURRENCY default above 1 in RVM runner - that's a terrible
-  default. Research WRK's concurrency and exactly what it controls.
 * Standardize field names for JSON vs env vars (e.g. runs vs batches)
 * Document (somewhere) the diff between user-specified fields and
   the options array taken by the runner
