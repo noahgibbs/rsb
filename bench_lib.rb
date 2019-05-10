@@ -162,7 +162,7 @@ module BenchLib
       port: 4321,
       timestamp: nil,
       url: "http://127.0.0.1:PORT/simple_bench/static",
-      out_file: "rsb_output_TIME.json",
+      out_file: "data/rsb_output_TIME.json",
       verbose: 1,
 
       # Server environment options
