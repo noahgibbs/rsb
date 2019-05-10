@@ -52,7 +52,8 @@ module BenchLib
   # ServerEnvironment starts and manages a Rails server to benchmark against.
   class ServerEnvironment
     def initialize(server_start_cmd = "rackup", server_pre_cmd: "echo Skipping", server_kill_substring: "rackup",
-          server_kill_command: nil, self_name: "ab_bench", url: "http://localhost:3000", suppress_server_output: true)
+          server_kill_command: nil, self_name: "ab_bench", url: "http://localhost:3000", suppress_server_output: true,
+          no_check_url: false)
       @server_start_cmd = server_start_cmd
       @server_pre_cmd = server_pre_cmd
       @server_kill_substring = server_kill_substring
@@ -63,6 +64,7 @@ module BenchLib
       end
       @url = url
       @suppress_server_output = suppress_server_output
+      @no_check_url = no_check_url
     end
 
     # Note: this only makes sense if we received @server_kill_substring, not @server_kill_command
@@ -97,9 +99,11 @@ module BenchLib
       system("curl #{@url} 1>/dev/null 2>&1")
       $?.success? # For some horrible reason, (only) on Linux, "system" is returning true on failure w/ output suppressed...
       # Example for irb: result=system("curl http://127.0.0.1:4321/static &>/dev/null")
+      # Note: this is an old bug - repros on 2.0.0-p0 through 2.6.0, minimum.
     end
 
     def ensure_url_available
+      return true if @no_check_url
       100.times do |i|
         return true if url_available?
         sleep 0.3
@@ -171,6 +175,7 @@ module BenchLib
       server_kill_command: nil,  # This is a command which, if run, should kill the server - only use *one* of kill command or kill matcher
       server_kill_matcher: nil,  # This is a string which, if matched, means "kill this process when killing server" - only use *one* of kill command or kill matcher
       suppress_server_output: true,
+      no_check_url: false,  # Don't check that the server actually opens/closes the appropriate PORT number
     }
 
     def initialize(settings = {})
@@ -314,14 +319,17 @@ module BenchLib
                                          server_kill_command: @settings[:server_kill_command],
                                          self_name: "wrk_bench",
                                          url: @settings[:url],
-                                         suppress_server_output: @settings[:suppress_server_output]
+                                         suppress_server_output: @settings[:suppress_server_output],
+                                         no_check_url: @settings[:no_check_url]
 
       # If we know how to make sure the server isn't running, do that.
       if @settings[:server_kill_matcher]
         server_env.server_cleanup
       end
 
-      raise "URL #{@settings[:url].inspect} should not be available before the server runs!" if server_env.url_available?
+      if !@settings[:no_check_url] && server_env.url_available?
+        raise "URL #{@settings[:url].inspect} should not be available before the server runs!"
+      end
 
       server_env.with_url_available do
         wrk_script_location = File.join(__dir__, @settings[:wrk_script_location])
@@ -339,7 +347,9 @@ module BenchLib
         csystem("#{@settings[:wrk_binary]} -t#{@settings[:wrk_concurrency]} -c#{@settings[:wrk_connections]} -d#{@settings[:benchmark_seconds]}s -s#{wrk_script_location} #{wrk_close_header_opts} --latency #{@settings[:url]} > benchmark_output_#{@settings[:timestamp]}.txt", "Couldn't run warmup iterations!")
       end
 
-      raise "URL #{@settings[:url].inspect} should not be available after the kill command (#{@settings[:server_kill_matcher].inspect})!" if server_env.url_available?
+      if !@settings[:no_check_url] && server_env.url_available?
+        raise "URL #{@settings[:url].inspect} should not be available after the kill command (#{@settings[:server_kill_matcher].inspect})!"
+      end
 
       # Read wrk's output, parse into our own output array
       if @settings[:warmup_seconds] > 0
