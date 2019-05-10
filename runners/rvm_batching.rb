@@ -189,7 +189,7 @@ config["configurations"].each do |conf|
     ruby: [conf["ruby"]].flatten(1),
     url: conf["url"] || "http://127.0.0.1:PORT/static",
     benchmark_seconds: conf["duration"] ? conf["duration"] : 120,
-    warmup_seconds: conf["warmup_seconds"] ? conf["warmup_seconds"] : 15,
+    warmup_seconds: conf["warmup"] ? conf["warmup"] : 15,
     app_server: conf["app_server"] ? [conf["app_server"]].flatten(1).map(&:to_sym) : [:puma],
     suppress_server_output: conf["debug_server"] ? conf["debug_server"] : false,
     rack_env: conf["rack_env"] || "production",
