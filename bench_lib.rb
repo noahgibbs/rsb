@@ -122,7 +122,7 @@ module BenchLib
     end
   end
 
-  # A BenchmarkEnvironment is meant to replace a "runner" script - it sets up the environment variables
+  # A BenchmarkEnvironment sets up the environment variables
   # and other system-level configuration for a ServerEnvironment to happen inside.
   #
   # WrkBenchRunner assumes that it will need to fork a separate subprocess to make all of this
@@ -133,8 +133,8 @@ module BenchLib
   # subsumes it - it takes the configuration variables and runs the ServerEnvironment for you rather than having you juggle
   # it manually in between.
   #
-  # The blessed method for running the benchmark is #run_wrk. See a runner script ending in .rb
-  # for examples of how to use it.
+  # The blessed method for running the benchmark is #run_wrk. See a runner script ending in the runners
+  # directory for examples of how to use it.
   class BenchmarkEnvironment
     SETTINGS_DEFAULTS = {
       # Wrk settings
@@ -148,9 +148,9 @@ module BenchLib
 
       # Runner Config
       before_worker_cmd: "bundle",
-      ruby_change_cmd: "bash -l -c \"BEFORE_WORKER && ruby RUNNER_SCRIPT JSON_FILENAME\"",
+      ruby_change_cmd: "bash -l -c \"BEFORE_WORKER && ruby SUBPROCESS_SCRIPT JSON_FILENAME\"",
       json_filename: "/tmp/benchlib_#{Process.pid}.json",
-      wrk_runner: File.expand_path(File.join(__dir__, "wrk_runner.rb")),
+      wrk_subprocess: File.expand_path(File.join(__dir__, "wrk_subprocess.rb")),
 
       # Bundler/Rack/Gem/Env config
       rack_env: "production", # Sets both $RACK_ENV and $RAILS_ENV
@@ -199,7 +199,7 @@ module BenchLib
         @settings[opt].gsub! "TIMESTAMP", @settings[:timestamp].to_s
         @settings[opt].gsub! "BEFORE_WORKER", @settings[:before_worker_cmd]
         @settings[opt].gsub! "JSON_FILENAME", @settings[:json_filename]
-        @settings[opt].gsub! "RUNNER_SCRIPT", @settings[:wrk_runner]
+        @settings[opt].gsub! "SUBPROCESS_SCRIPT", @settings[:wrk_subprocess]
       end
     end
 
@@ -211,7 +211,7 @@ module BenchLib
     end
 
     # This starts a run of wrk by packaging up settings, setting up configuration,
-    # forking a wrk_runner child process and passing everything through.
+    # forking a wrk_subprocess child process and passing everything through.
     #
     # Results will be in @settings[:out_file] once the child process has completed
     # successfully (if it does.)
@@ -304,8 +304,8 @@ module BenchLib
       out
     end
 
-    # This is run by the child process's wrk_runner.rb as a top-level method
-    def runner_main
+    # This is run by the child process's wrk_subprocess.rb as a top-level method
+    def subprocess_main
       output = capture_environment
 
       server_env = ServerEnvironment.new @settings[:server_cmd],
