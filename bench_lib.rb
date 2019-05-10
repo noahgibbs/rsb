@@ -148,7 +148,7 @@ module BenchLib
 
       # Runner Config
       before_worker_cmd: "bundle",
-      ruby_change_cmd: "bash -l -c \"BEFORE_WORKER && ruby SUBPROCESS_SCRIPT JSON_FILENAME\"",
+      ruby_subprocess_cmd: "bash -l -c \"BEFORE_WORKER && ruby SUBPROCESS_SCRIPT JSON_FILENAME\"",
       json_filename: "/tmp/benchlib_#{Process.pid}.json",
       wrk_subprocess: File.expand_path(File.join(__dir__, "wrk_subprocess.rb")),
 
@@ -193,7 +193,7 @@ module BenchLib
       # Perform text substitution on options
       # In some options, there's a text substitution for variables like PORT and TIMESTAMP
       [:url, :server_cmd, :server_pre_cmd, :server_kill_matcher, :server_kill_command,
-        :out_file, :before_worker_cmd, :ruby_change_cmd].each do |opt|
+        :out_file, :before_worker_cmd, :ruby_subprocess_cmd].each do |opt|
         next if @settings[opt].nil?
         @settings[opt] = @settings[opt].gsub "PORT", @settings[:port].to_s # Dup string on first gsub
         @settings[opt].gsub! "TIMESTAMP", @settings[:timestamp].to_s
@@ -218,7 +218,7 @@ module BenchLib
     def run_wrk
       filename = @settings[:json_filename]
       File.open(filename, "w") { |f| f.write JSON.dump(@settings) }
-      exec_with_config @settings[:ruby_change_cmd]
+      exec_with_config @settings[:ruby_subprocess_cmd]
       File.unlink(filename)
     end
 
