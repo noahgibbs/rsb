@@ -50,6 +50,9 @@
 #   of suppressing it.
 # * close_connection: turn off KeepAlive server-side for servers that have
 #   KeepAlive bugs.
+# * batch_retry: if specified as true, check files in output directory and only add new
+#   files as needed to complete one full configuration as specified.
+# * out_dir: by default, "data". Directory for output of batch data.
 #
 # * threads and processes can be specified for app servers that support them. However,
 #   you may need multiple configurations if you're using multiple app servers with
