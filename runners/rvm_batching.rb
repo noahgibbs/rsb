@@ -249,6 +249,7 @@ def run_benchmark(orig_opts)
 
     before_worker_cmd: "rvm use #{orig_opts[:ruby]} && bundle",  # Run before each batch
     bundle_gemfile: "Gemfile.#{orig_opts[:ruby]}",
+    rack_env: orig_opts[:rack_env],
 
     # Useful for debugging, annoying for day-to-day use
     suppress_server_output: orig_opts[:suppress_server_output],

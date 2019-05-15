@@ -684,7 +684,7 @@ eval_gemfile "Gemfile.common"
 GEMFILE
     end
 
-    alias cruby_rails_gemfile_contents cruby_rack_gemfile_contents
+    alias cruby_rack_gemfile_contents cruby_rails_gemfile_contents
 
     def jruby_rails_gemfile_contents(ruby_version)
       raise "Currently, there is only JRuby 9.2.X.Y support!" unless ruby_version[0..3] == "9.2."
@@ -696,7 +696,7 @@ eval_gemfile "Gemfile.common"
 GEMFILE
     end
 
-    alias jruby_rails_gemfile_contents jruby_rack_gemfile_contents
+    alias jruby_rack_gemfile_contents jruby_rails_gemfile_contents
 
     def truffleruby_rails_gemfile_contents(ruby_version)
       raise "No TruffleRuby support (yet)"
