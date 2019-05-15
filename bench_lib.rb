@@ -229,18 +229,20 @@ module BenchLib
     def exec_with_config(cmd_line)
       child_pid = fork do
         Bundler.with_clean_env do
-          ENV["RACK_ENV"] = @settings[:rack_env]
-          ENV["RAILS_ENV"] = @settings[:rack_env]
+          env_settings = {}
+          env_settings["RACK_ENV"] = @settings[:rack_env]
+          env_settings["RAILS_ENV"] = @settings[:rack_env]
           if @settings[:bundle_gemfile]
-            ENV["BUNDLE_GEMFILE"] = @settings[:bundle_gemfile]
+            env_settings["BUNDLE_GEMFILE"] = @settings[:bundle_gemfile]
           end
           if @settings[:bundler_version]
-            ENV["BUNDLER_VERSION"] = @settings[:bundler_version]
+            env_settings["BUNDLER_VERSION"] = @settings[:bundler_version]
           end
           if @settings[:extra_env]
-            @settings[:extra_env].each { |k, v| ENV[k.to_s] = v.to_s }
+            @settings[:extra_env].each { |k, v| env_settings[k.to_s] = v.to_s }
           end
-          verbose "exec: #{cmd_line.inspect}"
+          verbose "exec: #{cmd_line.inspect} / env: #{env_settings.inspect}"
+          env_settings.each { |k, v| ENV[k] = v }
           exec cmd_line
         end
       end
