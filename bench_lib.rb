@@ -97,9 +97,8 @@ module BenchLib
 
     def url_available?
       system("curl #{@url} 1>/dev/null 2>&1")
-      $?.success? # For some horrible reason, (only) on Linux, "system" is returning true on failure w/ output suppressed...
-      # Example for irb: result=system("curl http://127.0.0.1:4321/static &>/dev/null")
-      # Note: this is an old bug - repros on 2.0.0-p0 through 2.6.0, minimum.
+      $?.success?  # Think I can just return the system line above - was having trouble because I was
+      # using bash-specific syntax, which doesn't work on Linux /bin/sh...
     end
 
     def ensure_url_available
