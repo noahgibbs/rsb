@@ -194,7 +194,7 @@ config["configurations"].each do |conf|
     benchmark_seconds: conf["duration"] ? conf["duration"] : 120,
     warmup_seconds: conf["warmup"] ? conf["warmup"] : 15,
     app_server: conf["app_server"] ? [conf["app_server"]].flatten(1).map(&:to_sym) : [:puma],
-    suppress_server_output: conf["debug_server"] ? conf["debug_server"] : false,
+    suppress_server_output: conf["debug_server"] ? !conf["debug_server"] : true,
     rack_env: conf["rack_env"] || "production",
     processes: conf["processes"] || 1,
     threads: conf["threads"] || 1,
