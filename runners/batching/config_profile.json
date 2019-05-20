@@ -6,8 +6,8 @@
     "configurations": [
         {
             "batches": 1,
-            "duration": 60,
-            "warmup": 15,
+            "duration": 120,
+            "warmup": 0,
             "ruby": ["2.6.2"],
             "framework": ["rails"],
             "rack_env": "profile",
