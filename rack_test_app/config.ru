@@ -1,6 +1,12 @@
 require "complex"
 require "rack"
 
+if Rails.env.profile?
+  use Rack::RubyProf,
+    :path => File.join(__dir__, 'log/profile'),
+    :max_requests => 10_000
+end
+
 # Redirect output
 log = File.new("benchmark.log", "a")
 $stdout.reopen(log)

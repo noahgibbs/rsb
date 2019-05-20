@@ -46,6 +46,7 @@ module BenchLib
         #"ec2 instance type" => `wget -q -O - http://169.254.169.254/latest/meta-data/instance-type`,
         "uname" => `uname -a`,
         "dir" => Dir.pwd,
+        "worker pid" => Process.pid,
     }
   end
 

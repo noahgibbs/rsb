@@ -9,9 +9,9 @@
             "duration": 60,
             "warmup": 15,
             "ruby": ["2.6.2"],
-            "framework": ["rack"],
+            "framework": ["rails"],
             "rack_env": "profile",
-            "#debug_server": true,
+            "debug_server": true,
             "#extra_env": [ {}, { "RUBYOPT": "--jit" } ]
         }
     ]
