@@ -54,5 +54,5 @@ group :development do
 end
 
 group :profile do
-  gem 'ruby-prof'
+  gem 'ruby-prof', platform: :mri
 end
