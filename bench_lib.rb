@@ -147,7 +147,7 @@ module BenchLib
 
     def ensure_url_available
       return true if @no_check_url
-      100.times do |i|
+      400.times do |i|
         return true if url_available?
         sleep 0.3
         if i % 30 == 2
