@@ -337,17 +337,20 @@ module BenchLib
       server_env.with_url_available do
         wrk_script_location = File.join(__dir__, @settings[:wrk_script_location])
         wrk_close_header_opts = @settings[:wrk_close_connection] ? '--header "Connection: Close"' : ""
+        wrk_command = -> mode do
+          "#{@settings[:wrk_binary]} -t#{@settings[:wrk_concurrency]} -c#{@settings[:wrk_connections]} -d#{@settings[:"#{mode}_seconds"]}s -s#{wrk_script_location} #{wrk_close_header_opts} --latency #{@settings[:url]} > #{mode}_output_#{@settings[:timestamp]}.txt"
+        end
 
         # Warmup iterations first, if there are any
         if @settings[:warmup_seconds] > 0
           verbose "Starting warmup iterations"
-          csystem("#{@settings[:wrk_binary]} -t#{@settings[:wrk_concurrency]} -c#{@settings[:wrk_connections]} -d#{@settings[:warmup_seconds]}s -s#{wrk_script_location} #{wrk_close_header_opts} --latency #{@settings[:url]} > warmup_output_#{@settings[:timestamp]}.txt", "Couldn't run warmup iterations!")
+          csystem(wrk_command.call(:warmup), "Couldn't run warmup iterations!")
         else
           verbose "No warmup iterations..."
         end
 
         verbose "Starting real benchmark iterations"
-        csystem("#{@settings[:wrk_binary]} -t#{@settings[:wrk_concurrency]} -c#{@settings[:wrk_connections]} -d#{@settings[:benchmark_seconds]}s -s#{wrk_script_location} #{wrk_close_header_opts} --latency #{@settings[:url]} > benchmark_output_#{@settings[:timestamp]}.txt", "Couldn't run warmup iterations!")
+        csystem(wrk_command.call(:benchmark), "Couldn't run benchmark iterations!")
       end
 
       if !@settings[:no_check_url] && server_env.url_available?
