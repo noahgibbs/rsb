@@ -120,7 +120,7 @@ module BenchLib
       end
       pids = running_server_pids
       return if pids.empty?
-      pids.each { |pid| Process.kill "TERM", pid }
+      pids.each { |pid| Process.kill "INT", pid }
       pids.each { |pid|
         begin
           Process.wait(pid)
