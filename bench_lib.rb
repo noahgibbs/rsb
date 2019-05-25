@@ -134,10 +134,11 @@ module BenchLib
     end
 
     def start_server
-      output_modifier = @suppress_server_output ? "&>/dev/null" : ""
-      server_command = "ruby #{@server_ruby_opts} -S #{@server_start_cmd} #{output_modifier}"
-      puts "Running server: #{server_command}"
-      @server_pid = spawn(server_command)
+      redirects = {}
+      redirects = { out: File::NULL, err: File::NULL } if @suppress_server_output
+      server_command = "ruby #{@server_ruby_opts} -S #{@server_start_cmd}"
+      puts "Running server: #{server_command} #{redirects}"
+      @server_pid = spawn(server_command, redirects)
     end
 
     def url_available?
@@ -345,19 +346,22 @@ module BenchLib
         wrk_script_location = File.join(__dir__, @settings[:wrk_script_location])
         wrk_close_header_opts = @settings[:wrk_close_connection] ? '--header "Connection: Close"' : ""
         wrk_command = -> mode do
-          "#{@settings[:wrk_binary]} -t#{@settings[:wrk_concurrency]} -c#{@settings[:wrk_connections]} -d#{@settings[:"#{mode}_seconds"]}s -s#{wrk_script_location} #{wrk_close_header_opts} --latency #{@settings[:url]} > #{mode}_output_#{@settings[:timestamp]}.txt"
+          command = "#{@settings[:wrk_binary]} -t#{@settings[:wrk_concurrency]} -c#{@settings[:wrk_connections]} -d#{@settings[:"#{mode}_seconds"]}s -s#{wrk_script_location} #{wrk_close_header_opts} --latency #{@settings[:url]}"
+          puts "Running command: #{command}"
+          ret = system(command, out: "#{mode}_output_#{@settings[:timestamp]}.txt")
+          raise "Couldn't run #{mode} iterations!" unless ret
         end
 
         # Warmup iterations first, if there are any
         if @settings[:warmup_seconds] > 0
           verbose "Starting warmup iterations"
-          csystem(wrk_command.call(:warmup), "Couldn't run warmup iterations!")
+          wrk_command.call(:warmup)
         else
           verbose "No warmup iterations..."
         end
 
         verbose "Starting real benchmark iterations"
-        csystem(wrk_command.call(:benchmark), "Couldn't run benchmark iterations!")
+        wrk_command.call(:benchmark)
       end
 
       if !@settings[:no_check_url] && server_env.url_available?
