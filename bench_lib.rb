@@ -226,8 +226,11 @@ module BenchLib
     def run_wrk
       filename = @settings[:json_filename]
       File.open(filename, "w") { |f| f.write JSON.dump(@settings) }
-      exec_with_config @settings[:ruby_subprocess_cmd]
-      File.unlink(filename)
+      begin
+        exec_with_config @settings[:ruby_subprocess_cmd]
+      ensure
+        File.unlink(filename)
+      end
     end
 
     def exec_with_config(cmd_line)
