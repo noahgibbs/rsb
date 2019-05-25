@@ -55,7 +55,7 @@ module BenchLib
 
   # Checked system - error if the command fails
   def csystem(cmd, err, debug: true, fail_ok: false, console: true)
-    print "Running command: #{cmd.inspect}\n" if debug
+    puts "Running command: #{cmd}" if debug
     if console
       if RUBY_PLATFORM == "java"
         system(cmd)
@@ -251,7 +251,7 @@ module BenchLib
         if @settings[:extra_env]
           @settings[:extra_env].each { |k, v| env[k.to_s] = v.to_s }
         end
-        verbose "exec: #{cmd_line.inspect} #{env.inspect}"
+        verbose "exec: #{env.map { |k,v| "#{k}=#{v}" }.join(' ')} #{cmd_line}"
         system env, cmd_line
       end
     end
