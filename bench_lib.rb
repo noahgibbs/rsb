@@ -135,7 +135,9 @@ module BenchLib
 
     def start_server
       output_modifier = @suppress_server_output ? "&>/dev/null" : ""
-      csystem("ruby #{@server_ruby_opts} -S #{@server_start_cmd} #{output_modifier} &", "Can't run server!")
+      server_command = "ruby #{@server_ruby_opts} -S #{@server_start_cmd} #{output_modifier}"
+      puts "Running server: #{server_command}"
+      @server_pid = spawn(server_command)
     end
 
     def url_available?
