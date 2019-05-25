@@ -407,7 +407,7 @@ module BenchLib
 
         # Server environment options
         server_cmd: "bundle exec rails server -p PORT",
-        server_pre_cmd: "bundle && bundle exec rake db:migrate",
+        server_pre_cmd: "bundle exec rake db:migrate",
         server_kill_matcher: "rails server",
       }
     end
@@ -425,7 +425,7 @@ module BenchLib
         out_file: File.expand_path(File.join(__dir__, "data", "rsb_rack_TIMESTAMP.json")),
 
         # Server environment options
-        server_cmd: "bundle && bundle exec rackup -p PORT",
+        server_cmd: "bundle exec rackup -p PORT",
         server_pre_cmd: "bundle",
         server_kill_matcher: "rackup",
       }
@@ -446,7 +446,7 @@ UNICORN_CONFIG
 
         # Server environment options
         server_cmd: "bundle exec unicorn -p PORT --config-file #{cf}",
-        server_pre_cmd: "bundle && bundle exec rake db:migrate",
+        server_pre_cmd: "bundle exec rake db:migrate",
         server_kill_matcher: "unicorn",
 
         # Extra Gemfile, specified by an environment variable (see Gemfile.common)
@@ -470,7 +470,7 @@ UNICORN_CONFIG
         out_file: File.expand_path(File.join(__dir__, "data", "rsb_rack_TIMESTAMP.json")),
 
         # Server environment options
-        server_cmd: "bundle && bundle exec unicorn -p PORT --config-file #{cf}",
+        server_cmd: "bundle exec unicorn -p PORT --config-file #{cf}",
         server_pre_cmd: "bundle",
         server_kill_matcher: "rackup",
 
@@ -493,7 +493,7 @@ UNICORN_CONFIG
 
         # Server environment options
         server_cmd: "bundle exec thin -p PORT --tag rsb-thin-#{Process.pid} #{concurrency_options}",
-        server_pre_cmd: "bundle && bundle exec rake db:migrate",
+        server_pre_cmd: "bundle exec rake db:migrate",
         server_kill_matcher: "rsb-thin-#{Process.pid}",
 
         # Extra Gemfile, specified by an environment variable (see Gemfile.common)
@@ -538,7 +538,7 @@ UNICORN_CONFIG
 
         # Server environment options
         server_cmd: "bundle exec puma -p PORT -t #{threads}:#{threads} #{worker_opts} --tag puma_rsb_rails_#{Process.pid}",
-        server_pre_cmd: "bundle && bundle exec rake db:migrate",
+        server_pre_cmd: "bundle exec rake db:migrate",
         server_kill_matcher: "puma_rsb_rails_#{Process.pid}",
 
         # Extra Gemfile, specified by an environment variable (see Gemfile.common)
@@ -582,7 +582,7 @@ UNICORN_CONFIG
 
         # Server environment options
         server_cmd: "bundle exec passenger start -p PORT --log-level 2 --max-pool-size #{processes} --min-instances #{processes} --engine=builtin --passenger-pre-start",
-        server_pre_cmd: "bundle && bundle exec rake db:migrate",
+        server_pre_cmd: "bundle exec rake db:migrate",
         server_kill_command: "bundle exec passenger stop -p PORT",
 
         # Extra Gemfile, specified by an environment variable (see Gemfile.common)
