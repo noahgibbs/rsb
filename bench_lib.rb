@@ -79,11 +79,14 @@ module BenchLib
         return csystem(@server_kill_command, "Failure when running server kill command!", fail_ok: true)
       end
       pids = running_server_pids
-      return if pids == []
-      pids.each { |pid| Process.kill "HUP", pid }
-      sleep 3 # Leave time to clean up after SIGHUP
-      pids = running_server_pids
-      pids.each { |pid| Process.kill "KILL", pid }
+      return if pids.empty?
+      pids.each { |pid| Process.kill "TERM", pid }
+      pids.each { |pid|
+        begin
+          Process.wait(pid)
+        rescue Errno::ECHILD
+        end
+      }
     end
 
     def server_pre_cmd
