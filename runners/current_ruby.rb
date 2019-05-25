@@ -33,7 +33,7 @@ opts = {
 }
 
 # No concurrency specified
-opts.merge! options_by_framework_and_server(which_app, :webrick)
+opts = options_by_framework_and_server(which_app, :webrick).merge(opts)
 
 # Here's the meat of how to turn those options into benchmark output
 Dir.chdir("#{which_app}_test_app") do
