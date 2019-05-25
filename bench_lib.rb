@@ -130,7 +130,9 @@ module BenchLib
     end
 
     def server_pre_cmd
-      csystem("#{@server_pre_cmd}", "Couldn't run precommand(s) (#{@server_pre_cmd.inspect}) for server process!")
+      if @server_pid
+        csystem("#{@server_pre_cmd}", "Couldn't run precommand(s) (#{@server_pre_cmd.inspect}) for server process!")
+      end
     end
 
     def start_server
@@ -443,7 +445,6 @@ module BenchLib
 
         # Server environment options
         server_cmd: "bundle exec rackup -p PORT",
-        server_pre_cmd: "bundle",
         server_kill_matcher: "rackup",
       }
     end
@@ -488,7 +489,6 @@ UNICORN_CONFIG
 
         # Server environment options
         server_cmd: "bundle exec unicorn -p PORT --config-file #{cf}",
-        server_pre_cmd: "bundle",
         server_kill_matcher: "rackup",
 
         # Extra Gemfile, specified by an environment variable (see Gemfile.common)
@@ -532,7 +532,6 @@ UNICORN_CONFIG
 
         # Server environment options
         server_cmd: "bundle exec thin -p PORT --tag rsb-thin-#{Process.pid} #{concurrency_options}",
-        server_pre_cmd: "bundle",
         server_kill_matcher: "rsb-thin-#{Process.pid}",
 
         # Extra Gemfile, specified by an environment variable (see Gemfile.common)
@@ -578,7 +577,6 @@ UNICORN_CONFIG
 
         # Server environment options
         server_cmd: "bundle exec puma -p PORT -t #{threads}:#{threads} #{worker_opts} --tag puma_rsb_rack_#{Process.pid}",
-        server_pre_cmd: "bundle",
         server_kill_matcher: "puma_rsb_rack_#{Process.pid}",
 
         # Extra Gemfile, specified by an environment variable (see Gemfile.common)
@@ -620,7 +618,6 @@ UNICORN_CONFIG
 
         # Server environment options
         server_cmd: "bundle exec passenger start -p PORT --log-level 2 --max-pool-size #{processes} --min-instances #{processes} --engine=builtin --passenger-pre-start",
-        server_pre_cmd: "bundle",
         server_kill_command: "bundle exec passenger stop -p PORT",
 
         # Extra Gemfile, specified by an environment variable (see Gemfile.common)
