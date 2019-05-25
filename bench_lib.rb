@@ -116,6 +116,7 @@ module BenchLib
           puts "Still trying to connect..."
         end
       end
+      abort "Could not connect to the server!"
     end
 
     def with_url_available
@@ -155,7 +156,7 @@ module BenchLib
       wrk_close_connection: false,
 
       # Runner Config
-      before_worker_cmd: "bundle",
+      before_worker_cmd: "bundle install --deployment",
       ruby_subprocess_cmd: "bash -l -c \"BEFORE_WORKER && ruby SUBPROCESS_SCRIPT JSON_FILENAME\"",
       json_filename: "/tmp/benchlib_#{Process.pid}.json",
       wrk_subprocess: File.expand_path(File.join(__dir__, "wrk_subprocess.rb")),
