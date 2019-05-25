@@ -51,10 +51,11 @@ module BenchLib
 
   # ServerEnvironment starts and manages a Rails server to benchmark against.
   class ServerEnvironment
-    def initialize(server_start_cmd = "rackup", server_pre_cmd: "echo Skipping", server_kill_substring: "rackup",
+    def initialize(server_start_cmd = "rackup", server_ruby_opts: nil, server_pre_cmd: "echo Skipping", server_kill_substring: "rackup",
           server_kill_command: nil, self_name: "ab_bench", url: "http://localhost:3000", suppress_server_output: true,
           no_check_url: false)
       @server_start_cmd = server_start_cmd
+      @server_ruby_opts = server_ruby_opts
       @server_pre_cmd = server_pre_cmd
       @server_kill_substring = server_kill_substring
       @server_kill_command = server_kill_command
@@ -95,7 +96,7 @@ module BenchLib
 
     def start_server
       output_modifier = @suppress_server_output ? "&>/dev/null" : ""
-      csystem("#{@server_start_cmd} #{output_modifier} &", "Can't run server!")
+      csystem("ruby #{@server_ruby_opts} -S #{@server_start_cmd} #{output_modifier} &", "Can't run server!")
     end
 
     def url_available?
@@ -174,6 +175,7 @@ module BenchLib
 
       # Server environment options
       server_cmd: nil,      # This command should start the server
+      server_ruby_opts: nil, # Additional ruby options passed to the server process
       server_pre_cmd: nil,  # This command is run at least once before starting the server
       server_kill_command: nil,  # This is a command which, if run, should kill the server - only use *one* of kill command or kill matcher
       server_kill_matcher: nil,  # This is a string which, if matched, means "kill this process when killing server" - only use *one* of kill command or kill matcher
@@ -317,6 +319,7 @@ module BenchLib
       output = capture_environment
 
       server_env = ServerEnvironment.new @settings[:server_cmd],
+                                         server_ruby_opts: @settings[:server_ruby_opts],
                                          server_pre_cmd: @settings[:server_pre_cmd],
                                          server_kill_substring: @settings[:server_kill_matcher],
                                          server_kill_command: @settings[:server_kill_command],
