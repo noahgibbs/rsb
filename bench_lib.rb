@@ -14,6 +14,45 @@ require "bundler"
 
 module BenchLib
 
+  SETTINGS_DEFAULTS = {
+      # Wrk settings
+      wrk_binary: "wrk",
+      wrk_concurrency: 1,            # This is wrk's own "concurrency" setting for number of requests in flight
+      wrk_connections: 100,          # Number of connections for wrk to create and use
+      warmup_seconds: 5,
+      benchmark_seconds: 180,
+      wrk_script_location: "./final_report.lua",  # This is the lua script for generating the final report, relative to this source file
+      wrk_close_connection: false,
+
+      # Runner Config
+      before_worker_cmd: "bundle",
+      ruby_subprocess_cmd: "bash -l -c \"BEFORE_WORKER && ruby SUBPROCESS_SCRIPT JSON_FILENAME\"",
+      json_filename: "/tmp/benchlib_#{Process.pid}.json",
+      wrk_subprocess: File.expand_path(File.join(__dir__, "wrk_subprocess.rb")),
+
+      # Bundler/Rack/Gem/Env config
+      rack_env: "production", # Sets both $RACK_ENV and $RAILS_ENV
+      bundle_gemfile: nil,    # If supplied, set BUNDLE_GEMFILE to value.
+      bundler_version: nil,   # If supplied, set BUNDLER_VERSION to value.
+      extra_env: {},          # Additional environment variables to set.
+
+      # Benchmarking options
+      port: 4321,
+      timestamp: nil,
+      url: "http://127.0.0.1:PORT/simple_bench/static",
+      out_file: "data/rsb_output_TIME.json",
+      verbose: 1,
+
+      # Server environment options
+      server_cmd: nil,      # This command should start the server
+      server_ruby_opts: nil, # Additional ruby options passed to the server process
+      server_pre_cmd: nil,  # This command is run at least once before starting the server
+      server_kill_command: nil,  # This is a command which, if run, should kill the server - only use *one* of kill command or kill matcher
+      server_kill_matcher: nil,  # This is a string which, if matched, means "kill this process when killing server" - only use *one* of kill command or kill matcher
+      suppress_server_output: true,
+      no_check_url: false,  # Don't check that the server actually opens/closes the appropriate PORT number
+  }
+
   # Checked system - error if the command fails
   def csystem(cmd, err, debug: true, fail_ok: false, console: true)
     print "Running command: #{cmd.inspect}\n" if debug
@@ -145,49 +184,11 @@ module BenchLib
   # The blessed method for running the benchmark is #run_wrk. See a runner script ending in the runners
   # directory for examples of how to use it.
   class BenchmarkEnvironment
-    SETTINGS_DEFAULTS = {
-      # Wrk settings
-      wrk_binary: "wrk",
-      wrk_concurrency: 1,            # This is wrk's own "concurrency" setting for number of requests in flight
-      wrk_connections: 100,          # Number of connections for wrk to create and use
-      warmup_seconds: 5,
-      benchmark_seconds: 180,
-      wrk_script_location: "./final_report.lua",  # This is the lua script for generating the final report, relative to this source file
-      wrk_close_connection: false,
-
-      # Runner Config
-      before_worker_cmd: "bundle install --deployment",
-      ruby_subprocess_cmd: "bash -l -c \"BEFORE_WORKER && ruby SUBPROCESS_SCRIPT JSON_FILENAME\"",
-      json_filename: "/tmp/benchlib_#{Process.pid}.json",
-      wrk_subprocess: File.expand_path(File.join(__dir__, "wrk_subprocess.rb")),
-
-      # Bundler/Rack/Gem/Env config
-      rack_env: "production", # Sets both $RACK_ENV and $RAILS_ENV
-      bundle_gemfile: nil,    # If supplied, set BUNDLE_GEMFILE to value.
-      bundler_version: nil,   # If supplied, set BUNDLER_VERSION to value.
-      extra_env: {},          # Additional environment variables to set.
-
-      # Benchmarking options
-      port: 4321,
-      timestamp: nil,
-      url: "http://127.0.0.1:PORT/simple_bench/static",
-      out_file: "data/rsb_output_TIME.json",
-      verbose: 1,
-
-      # Server environment options
-      server_cmd: nil,      # This command should start the server
-      server_ruby_opts: nil, # Additional ruby options passed to the server process
-      server_pre_cmd: nil,  # This command is run at least once before starting the server
-      server_kill_command: nil,  # This is a command which, if run, should kill the server - only use *one* of kill command or kill matcher
-      server_kill_matcher: nil,  # This is a string which, if matched, means "kill this process when killing server" - only use *one* of kill command or kill matcher
-      suppress_server_output: true,
-      no_check_url: false,  # Don't check that the server actually opens/closes the appropriate PORT number
-    }
 
     def initialize(settings = {})
-      settings = SETTINGS_DEFAULTS.merge(settings) # Don't modify passed-in original
+      settings = BenchLib::SETTINGS_DEFAULTS.merge(settings) # Don't modify passed-in original
 
-      illegal_keys = settings.keys - SETTINGS_DEFAULTS.keys
+      illegal_keys = settings.keys - BenchLib::SETTINGS_DEFAULTS.keys
       raise "Illegal keys in settings: #{illegal_keys.inspect}!" unless illegal_keys.empty?
       @settings = settings
 

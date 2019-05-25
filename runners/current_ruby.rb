@@ -18,6 +18,7 @@ which_app = :rails  # Can also be :rack
 # need to create one.
 ruby_version = `ruby -e "puts RUBY_VERSION"`.chomp
 
+# See #BenchLib::SETTINGS_DEFAULTS for the various options
 opts = {
   wrk_concurrency: 1,
   wrk_connections: 10,
