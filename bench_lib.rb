@@ -11,6 +11,7 @@
 
 require "json"
 require "bundler"
+require "timeout"
 
 module BenchLib
 
@@ -120,13 +121,35 @@ module BenchLib
       end
       pids = running_server_pids
       return if pids.empty?
-      pids.each { |pid| Process.kill "INT", pid }
-      pids.each { |pid|
-        begin
-          Process.wait(pid)
-        rescue Errno::ECHILD
+
+      kill = -> signal do
+        pids.each do |pid|
+          begin
+            Process.kill signal, pid
+          rescue Errno::ESRCH
+            # Already terminated
+          end
         end
-      }
+      end
+
+      wait = -> do
+        pids.each do |pid|
+          begin
+            Process.wait(pid)
+          rescue Errno::ECHILD
+            # Already waited on or server process of a previous run
+          end
+        end
+      end
+
+      kill.call(:SIGINT)
+      begin
+        Timeout.timeout(3) { wait.call }
+      rescue Timeout::Error
+        puts "Sending SIGKILL to #{pids} as they did not terminate in 3s after SIGINT"
+        kill.call(:SIGKILL)
+        wait.call
+      end
     end
 
     def server_pre_cmd
