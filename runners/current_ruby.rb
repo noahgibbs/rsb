@@ -12,12 +12,14 @@ include BenchLib
 include BenchLib::OptionsBuilder
 
 which_app = :rails  # Can also be :rack
+server = :webrick   # Can also be :puma, :unicorn, :thin, :passenger
 
 # This determines which Gemfile.lock is appropriate.
 # There may not be a single most appropriate version, or you may
 # need to create one.
 ruby_version = `ruby -e "puts RUBY_VERSION"`.chomp
 
+# See #BenchLib::SETTINGS_DEFAULTS for the various options
 opts = {
   wrk_concurrency: 1,
   wrk_connections: 10,
@@ -32,7 +34,7 @@ opts = {
 }
 
 # No concurrency specified
-opts.merge! options_by_framework_and_server(which_app, :webrick)
+opts = options_by_framework_and_server(which_app, server).merge(opts)
 
 # Here's the meat of how to turn those options into benchmark output
 Dir.chdir("#{which_app}_test_app") do

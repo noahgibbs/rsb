@@ -20,7 +20,7 @@ OPTS = {
   wrk_binary: "wrk",
   wrk_connections: 100,
   url: "http://127.0.0.1:PORT/simple_bench/static",
-  server_pre_cmd: "bundle install && bundle exec rake db:migrate",
+  server_pre_cmd: "bundle exec rake db:migrate",
   server_cmd: "rackup -p PORT",
   server_kill_matcher: "rackup",
   server_kill_command: nil,
