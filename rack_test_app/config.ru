@@ -3,8 +3,9 @@ require "rack"
 
 if Rails.env.profile?
   use Rack::RubyProf,
-    :path => File.join(__dir__, 'log/profile'),
-    :max_requests => 10_000
+    :path => File.expand_path(File.join(__dir__, 'log/profile')),
+    :prefix => "rsb-rack-#{Process.pid}-",
+    :max_requests => ENV["RSB_PROFILE_REQS"] || 10_000
 end
 
 # Redirect output

@@ -162,9 +162,6 @@ especially when not using the database in the measured route.
 
 ## Load Testing Tools
 
-ApacheBench is not recommended for new uses - its reporting and
-accuracy are poor and there are bugs and edge-cases that make it hard
-to be sure you're getting what you think you are.
+ApacheBench is no longer being used for RSB, and any remaining vestiges of it are just that. It doesn't report individual timings below millisecond resolution, its KeepAlive code is HTTP 1.0-only and causes bugs in Puma, and it has trouble with dynamic documents (cases where responses aren't byte-for-byte) identical. After extensive attempts to use it, the accuracy issues have been insurmountable (http://engineering.appfolio.com/appfolio-engineering/2019/1/18/benchmarking-ruby-app-servers-badly).
 
-For newer use cases, we follow Phusion.nl's recommendation for "wrk",
-a simple, powerful and accurate benchmarking program.
+For newer use cases, we follow Phusion.nl's recommendation for "wrk", a simple, powerful and accurate benchmarking program that avoids reopening connections (Google "ephemeral port exhaustion" for details on why reopening connections gets to be a problem quickly on Linux.)
