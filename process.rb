@@ -85,7 +85,7 @@ INPUT_FILES.each do |f|
   end
 
   # Assign a cohort to these samples
-  cohort_parts = cohort_indices.map do |cohort_elt|
+  cohort = cohort_indices.map do |cohort_elt|
     raise "Unexpected file format for file #{f.inspect}!" unless d && d["settings"] && d["environment"]
     item = nil
     if d["settings"].has_key?(cohort_elt)
@@ -100,8 +100,7 @@ INPUT_FILES.each do |f|
       end
     end
     item
-  end
-  cohort = cohort_parts.join(",")
+  end.freeze
 
   # Reject incorrect versions of data format
   if d["version"] != "wrk:2"
@@ -123,7 +122,7 @@ INPUT_FILES.each do |f|
 
   duration = d["settings"]["benchmark_seconds"]
   if duration.nil? || duration < 0.00001
-    raise "Problem with duration (#{duration.inspect}), file #{f.inspect}, cohort #{cohort.inspect}"
+    raise "Problem with duration (#{duration.inspect}), file #{f.inspect}, cohort #{cohort.join(", ")}"
   end
 
   req_time_by_cohort[cohort] ||= []
@@ -178,7 +177,7 @@ req_time_by_cohort.keys.sort.each do |cohort|
   rates = req_rates_by_cohort[cohort].sort
   throughputs = throughput_by_cohort[cohort].sort
 
-  cohort_printable = cohort_indices.zip(cohort.split(",")).map { |a, b| "#{a}: #{b}" }.join(", ")
+  cohort_printable = cohort_indices.zip(cohort).map { |a, b| "#{a}: #{b}" }.join(", ")
   print "=====\nCohort: #{cohort_printable}, # of requests: #{latencies.size} http requests, #{throughputs.size} batches\n"
 
   process_output[:processed][:cohort][cohort] = {

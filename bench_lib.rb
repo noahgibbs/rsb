@@ -14,9 +14,48 @@ require "bundler"
 
 module BenchLib
 
+  SETTINGS_DEFAULTS = {
+      # Wrk settings
+      wrk_binary: "wrk",
+      wrk_concurrency: 1,            # This is wrk's own "concurrency" setting for number of requests in flight
+      wrk_connections: 100,          # Number of connections for wrk to create and use
+      warmup_seconds: 5,
+      benchmark_seconds: 180,
+      wrk_script_location: "./final_report.lua",  # This is the lua script for generating the final report, relative to this source file
+      wrk_close_connection: false,
+
+      # Runner Config
+      before_worker_cmd: "bundle install",
+      ruby_subprocess_cmd: "bash -l -c \"BEFORE_WORKER && ruby SUBPROCESS_SCRIPT JSON_FILENAME\"",
+      json_filename: "/tmp/benchlib_#{Process.pid}.json",
+      wrk_subprocess: File.expand_path(File.join(__dir__, "wrk_subprocess.rb")),
+
+      # Bundler/Rack/Gem/Env config
+      rack_env: "production", # Sets both $RACK_ENV and $RAILS_ENV
+      bundle_gemfile: nil,    # If supplied, set BUNDLE_GEMFILE to value.
+      bundler_version: nil,   # If supplied, set BUNDLER_VERSION to value.
+      extra_env: {},          # Additional environment variables to set.
+
+      # Benchmarking options
+      port: 4321,
+      timestamp: nil,
+      url: "http://127.0.0.1:PORT/simple_bench/static",
+      out_file: "data/rsb_output_TIME.json",
+      verbose: 1,
+
+      # Server environment options
+      server_cmd: nil,      # This command should start the server
+      server_ruby_opts: nil, # Additional ruby options passed to the server process
+      server_pre_cmd: nil,  # This command is run at least once before starting the server
+      server_kill_command: nil,  # This is a command which, if run, should kill the server - only use *one* of kill command or kill matcher
+      server_kill_matcher: nil,  # This is a string which, if matched, means "kill this process when killing server" - only use *one* of kill command or kill matcher
+      suppress_server_output: true,
+      no_check_url: false,  # Don't check that the server actually opens/closes the appropriate PORT number
+  }
+
   # Checked system - error if the command fails
   def csystem(cmd, err, debug: true, fail_ok: false, console: true)
-    print "Running command: #{cmd.inspect}\n" if debug
+    puts "Running command: #{cmd}" if debug
     if console
       if RUBY_PLATFORM == "java"
         system(cmd)
@@ -52,10 +91,11 @@ module BenchLib
 
   # ServerEnvironment starts and manages a Rails server to benchmark against.
   class ServerEnvironment
-    def initialize(server_start_cmd = "rackup", server_pre_cmd: "echo Skipping", server_kill_substring: "rackup",
+    def initialize(server_start_cmd = "rackup", server_ruby_opts: nil, server_pre_cmd: "echo Skipping", server_kill_substring: "rackup",
           server_kill_command: nil, self_name: "ab_bench", url: "http://localhost:3000", suppress_server_output: true,
           no_check_url: false)
       @server_start_cmd = server_start_cmd
+      @server_ruby_opts = server_ruby_opts
       @server_pre_cmd = server_pre_cmd
       @server_kill_substring = server_kill_substring
       @server_kill_command = server_kill_command
@@ -80,20 +120,28 @@ module BenchLib
         return csystem(@server_kill_command, "Failure when running server kill command!", fail_ok: true)
       end
       pids = running_server_pids
-      return if pids == []
-      pids.each { |pid| Process.kill "HUP", pid }
-      sleep 3 # Leave time to clean up after SIGHUP
-      pids = running_server_pids
-      pids.each { |pid| Process.kill "KILL", pid }
+      return if pids.empty?
+      pids.each { |pid| Process.kill "INT", pid }
+      pids.each { |pid|
+        begin
+          Process.wait(pid)
+        rescue Errno::ECHILD
+        end
+      }
     end
 
     def server_pre_cmd
-      csystem("#{@server_pre_cmd}", "Couldn't run precommand(s) (#{@server_pre_cmd.inspect}) for server process!")
+      if @server_pid
+        csystem("#{@server_pre_cmd}", "Couldn't run precommand(s) (#{@server_pre_cmd.inspect}) for server process!")
+      end
     end
 
     def start_server
-      output_modifier = @suppress_server_output ? "&>/dev/null" : ""
-      csystem("#{@server_start_cmd} #{output_modifier} &", "Can't run server!")
+      redirects = {}
+      redirects = { out: File::NULL, err: File::NULL } if @suppress_server_output
+      server_command = "ruby #{@server_ruby_opts} -S #{@server_start_cmd}"
+      puts "Running server: #{server_command} #{redirects}"
+      @server_pid = spawn(server_command, redirects)
     end
 
     def url_available?
@@ -104,7 +152,7 @@ module BenchLib
 
     def ensure_url_available
       return true if @no_check_url
-      100.times do |i|
+      400.times do |i|
         return true if url_available?
         sleep 0.3
         if i % 30 == 2
@@ -112,6 +160,7 @@ module BenchLib
           puts "Still trying to connect..."
         end
       end
+      abort "Could not connect to the server!"
     end
 
     def with_url_available
@@ -140,48 +189,11 @@ module BenchLib
   # The blessed method for running the benchmark is #run_wrk. See a runner script ending in the runners
   # directory for examples of how to use it.
   class BenchmarkEnvironment
-    SETTINGS_DEFAULTS = {
-      # Wrk settings
-      wrk_binary: "wrk",
-      wrk_concurrency: 1,            # This is wrk's own "concurrency" setting for number of requests in flight
-      wrk_connections: 100,          # Number of connections for wrk to create and use
-      warmup_seconds: 5,
-      benchmark_seconds: 180,
-      wrk_script_location: "./final_report.lua",  # This is the lua script for generating the final report, relative to this source file
-      wrk_close_connection: false,
-
-      # Runner Config
-      before_worker_cmd: "bundle",
-      ruby_subprocess_cmd: "bash -l -c \"BEFORE_WORKER && ruby SUBPROCESS_SCRIPT JSON_FILENAME\"",
-      json_filename: "/tmp/benchlib_#{Process.pid}.json",
-      wrk_subprocess: File.expand_path(File.join(__dir__, "wrk_subprocess.rb")),
-
-      # Bundler/Rack/Gem/Env config
-      rack_env: "production", # Sets both $RACK_ENV and $RAILS_ENV
-      bundle_gemfile: nil,    # If supplied, set BUNDLE_GEMFILE to value.
-      bundler_version: nil,   # If supplied, set BUNDLER_VERSION to value.
-      extra_env: {},          # Additional environment variables to set.
-
-      # Benchmarking options
-      port: 4321,
-      timestamp: nil,
-      url: "http://127.0.0.1:PORT/simple_bench/static",
-      out_file: "data/rsb_output_TIME.json",
-      verbose: 1,
-
-      # Server environment options
-      server_cmd: nil,      # This command should start the server
-      server_pre_cmd: nil,  # This command is run at least once before starting the server
-      server_kill_command: nil,  # This is a command which, if run, should kill the server - only use *one* of kill command or kill matcher
-      server_kill_matcher: nil,  # This is a string which, if matched, means "kill this process when killing server" - only use *one* of kill command or kill matcher
-      suppress_server_output: true,
-      no_check_url: false,  # Don't check that the server actually opens/closes the appropriate PORT number
-    }
 
     def initialize(settings = {})
-      settings = SETTINGS_DEFAULTS.merge(settings) # Don't modify passed-in original
+      settings = BenchLib::SETTINGS_DEFAULTS.merge(settings) # Don't modify passed-in original
 
-      illegal_keys = settings.keys - SETTINGS_DEFAULTS.keys
+      illegal_keys = settings.keys - BenchLib::SETTINGS_DEFAULTS.keys
       raise "Illegal keys in settings: #{illegal_keys.inspect}!" unless illegal_keys.empty?
       @settings = settings
 
@@ -223,32 +235,30 @@ module BenchLib
     def run_wrk
       filename = @settings[:json_filename]
       File.open(filename, "w") { |f| f.write JSON.dump(@settings) }
-      exec_with_config @settings[:ruby_subprocess_cmd]
-      File.unlink(filename)
+      begin
+        exec_with_config @settings[:ruby_subprocess_cmd]
+      ensure
+        File.unlink(filename)
+      end
     end
 
     def exec_with_config(cmd_line)
-      child_pid = fork do
-        Bundler.with_clean_env do
-          env_settings = {}
-          env_settings["RACK_ENV"] = @settings[:rack_env]
-          env_settings["RAILS_ENV"] = @settings[:rack_env]
-          if @settings[:bundle_gemfile]
-            env_settings["BUNDLE_GEMFILE"] = @settings[:bundle_gemfile]
-          end
-          if @settings[:bundler_version]
-            env_settings["BUNDLER_VERSION"] = @settings[:bundler_version]
-          end
-          if @settings[:extra_env]
-            @settings[:extra_env].each { |k, v| env_settings[k.to_s] = v.to_s }
-          end
-          verbose "exec: #{cmd_line.inspect} / env: #{env_settings.inspect}"
-          env_settings.each { |k, v| ENV[k] = v }
-          exec cmd_line
+      Bundler.with_clean_env do
+        env = {}
+        env["RACK_ENV"] = @settings[:rack_env]
+        env["RAILS_ENV"] = @settings[:rack_env]
+        if @settings[:bundle_gemfile]
+          env["BUNDLE_GEMFILE"] = @settings[:bundle_gemfile]
         end
+        if @settings[:bundler_version]
+          env["BUNDLER_VERSION"] = @settings[:bundler_version]
+        end
+        if @settings[:extra_env]
+          @settings[:extra_env].each { |k, v| env[k.to_s] = v.to_s }
+        end
+        verbose "exec: #{env.map { |k,v| "#{k}=#{v}" }.join(' ')} #{cmd_line}"
+        system env, cmd_line
       end
-      # Now wait for the benchmark to finish
-      Process.wait(child_pid)
     end
 
     def verbose(s)
@@ -316,6 +326,7 @@ module BenchLib
       output = capture_environment
 
       server_env = ServerEnvironment.new @settings[:server_cmd],
+                                         server_ruby_opts: @settings[:server_ruby_opts],
                                          server_pre_cmd: @settings[:server_pre_cmd],
                                          server_kill_substring: @settings[:server_kill_matcher],
                                          server_kill_command: @settings[:server_kill_command],
@@ -336,17 +347,23 @@ module BenchLib
       server_env.with_url_available do
         wrk_script_location = File.join(__dir__, @settings[:wrk_script_location])
         wrk_close_header_opts = @settings[:wrk_close_connection] ? '--header "Connection: Close"' : ""
+        wrk_command = -> mode do
+          command = "#{@settings[:wrk_binary]} -t#{@settings[:wrk_concurrency]} -c#{@settings[:wrk_connections]} -d#{@settings[:"#{mode}_seconds"]}s -s#{wrk_script_location} #{wrk_close_header_opts} --latency #{@settings[:url]}"
+          puts "Running command: #{command}"
+          ret = system(command, out: "#{mode}_output_#{@settings[:timestamp]}.txt")
+          raise "Couldn't run #{mode} iterations!" unless ret
+        end
 
         # Warmup iterations first, if there are any
         if @settings[:warmup_seconds] > 0
           verbose "Starting warmup iterations"
-          csystem("#{@settings[:wrk_binary]} -t#{@settings[:wrk_concurrency]} -c#{@settings[:wrk_connections]} -d#{@settings[:warmup_seconds]}s -s#{wrk_script_location} #{wrk_close_header_opts} --latency #{@settings[:url]} > warmup_output_#{@settings[:timestamp]}.txt", "Couldn't run warmup iterations!")
+          wrk_command.call(:warmup)
         else
           verbose "No warmup iterations..."
         end
 
         verbose "Starting real benchmark iterations"
-        csystem("#{@settings[:wrk_binary]} -t#{@settings[:wrk_concurrency]} -c#{@settings[:wrk_connections]} -d#{@settings[:benchmark_seconds]}s -s#{wrk_script_location} #{wrk_close_header_opts} --latency #{@settings[:url]} > benchmark_output_#{@settings[:timestamp]}.txt", "Couldn't run warmup iterations!")
+        wrk_command.call(:benchmark)
       end
 
       if !@settings[:no_check_url] && server_env.url_available?
@@ -409,7 +426,7 @@ module BenchLib
 
         # Server environment options
         server_cmd: "bundle exec rails server -p PORT",
-        server_pre_cmd: "bundle && bundle exec rake db:migrate",
+        server_pre_cmd: "bundle exec rake db:migrate",
         server_kill_matcher: "rails server",
       }
     end
@@ -427,8 +444,7 @@ module BenchLib
         out_file: File.expand_path(File.join(__dir__, "data", "rsb_rack_TIMESTAMP.json")),
 
         # Server environment options
-        server_cmd: "bundle && bundle exec rackup -p PORT",
-        server_pre_cmd: "bundle",
+        server_cmd: "bundle exec rackup -p PORT",
         server_kill_matcher: "rackup",
       }
     end
@@ -448,7 +464,7 @@ UNICORN_CONFIG
 
         # Server environment options
         server_cmd: "bundle exec unicorn -p PORT --config-file #{cf}",
-        server_pre_cmd: "bundle && bundle exec rake db:migrate",
+        server_pre_cmd: "bundle exec rake db:migrate",
         server_kill_matcher: "unicorn",
 
         # Extra Gemfile, specified by an environment variable (see Gemfile.common)
@@ -472,8 +488,7 @@ UNICORN_CONFIG
         out_file: File.expand_path(File.join(__dir__, "data", "rsb_rack_TIMESTAMP.json")),
 
         # Server environment options
-        server_cmd: "bundle && bundle exec unicorn -p PORT --config-file #{cf}",
-        server_pre_cmd: "bundle",
+        server_cmd: "bundle exec unicorn -p PORT --config-file #{cf}",
         server_kill_matcher: "rackup",
 
         # Extra Gemfile, specified by an environment variable (see Gemfile.common)
@@ -495,7 +510,7 @@ UNICORN_CONFIG
 
         # Server environment options
         server_cmd: "bundle exec thin -p PORT --tag rsb-thin-#{Process.pid} #{concurrency_options}",
-        server_pre_cmd: "bundle && bundle exec rake db:migrate",
+        server_pre_cmd: "bundle exec rake db:migrate",
         server_kill_matcher: "rsb-thin-#{Process.pid}",
 
         # Extra Gemfile, specified by an environment variable (see Gemfile.common)
@@ -517,7 +532,6 @@ UNICORN_CONFIG
 
         # Server environment options
         server_cmd: "bundle exec thin -p PORT --tag rsb-thin-#{Process.pid} #{concurrency_options}",
-        server_pre_cmd: "bundle",
         server_kill_matcher: "rsb-thin-#{Process.pid}",
 
         # Extra Gemfile, specified by an environment variable (see Gemfile.common)
@@ -540,7 +554,7 @@ UNICORN_CONFIG
 
         # Server environment options
         server_cmd: "bundle exec puma -p PORT -t #{threads}:#{threads} #{worker_opts} --tag puma_rsb_rails_#{Process.pid}",
-        server_pre_cmd: "bundle && bundle exec rake db:migrate",
+        server_pre_cmd: "bundle exec rake db:migrate",
         server_kill_matcher: "puma_rsb_rails_#{Process.pid}",
 
         # Extra Gemfile, specified by an environment variable (see Gemfile.common)
@@ -563,7 +577,6 @@ UNICORN_CONFIG
 
         # Server environment options
         server_cmd: "bundle exec puma -p PORT -t #{threads}:#{threads} #{worker_opts} --tag puma_rsb_rack_#{Process.pid}",
-        server_pre_cmd: "bundle",
         server_kill_matcher: "puma_rsb_rack_#{Process.pid}",
 
         # Extra Gemfile, specified by an environment variable (see Gemfile.common)
@@ -584,7 +597,7 @@ UNICORN_CONFIG
 
         # Server environment options
         server_cmd: "bundle exec passenger start -p PORT --log-level 2 --max-pool-size #{processes} --min-instances #{processes} --engine=builtin --passenger-pre-start",
-        server_pre_cmd: "bundle && bundle exec rake db:migrate",
+        server_pre_cmd: "bundle exec rake db:migrate",
         server_kill_command: "bundle exec passenger stop -p PORT",
 
         # Extra Gemfile, specified by an environment variable (see Gemfile.common)
@@ -605,7 +618,6 @@ UNICORN_CONFIG
 
         # Server environment options
         server_cmd: "bundle exec passenger start -p PORT --log-level 2 --max-pool-size #{processes} --min-instances #{processes} --engine=builtin --passenger-pre-start",
-        server_pre_cmd: "bundle",
         server_kill_command: "bundle exec passenger stop -p PORT",
 
         # Extra Gemfile, specified by an environment variable (see Gemfile.common)

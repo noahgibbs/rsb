@@ -8,11 +8,6 @@ if Rails.env.profile?
     :max_requests => ENV["RSB_PROFILE_REQS"] || 10_000
 end
 
-# Redirect output
-log = File.new("benchmark.log", "a")
-$stdout.reopen(log)
-$stderr.reopen(log)
-
 class SpeedTest
   ROUTES = {
     "/" => proc { [200, {"Content-Type" => "text/html"}, ["Hello World!"]] },

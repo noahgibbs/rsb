@@ -46,6 +46,13 @@ You can also run with more settings changes and multiple different Rubies if you
 RSB_NUM_RUNS=10 RSB_RUBIES="2.6.0 2.4.5 2.0.0-p0" RSB_DURATION=180 RSB_WARMUP=20 RSB_FRAMEWORKS=rack RSB_APP_SERVER=puma RSB_PROCESSES=1 RSB_THREADS=1 ./runners/rvm_rubies.rb
 ```
 
+### Process Structure
+
+* Runner (e.g., `runners/current_ruby.rb`)
+  * `ruby wrk_subprocess.rb benchlib.json`
+    * Server (e.g., `bundle exec rails server`)
+    * `wrk OPTIONS URL`
+
 ### Runners
 
 RSB uses a number of "runner" scripts to test different
