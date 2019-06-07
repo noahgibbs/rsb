@@ -200,6 +200,7 @@ config["configurations"].each do |conf|
     threads: conf["threads"] || 1,
     extra_env: conf["extra_env"] || {},
     bundler_version: conf["bundler_version"] || "1.17.3",
+    wrk_binary: conf["wrk"]["binary"] || "wrk",
     wrk_concurrency: conf["wrk"]["threads"] || 1,
     wrk_connections: conf["wrk"]["connections"] || 5,
     wrk_close_connection: conf["close_connection"] ? conf["close_connection"] : false,
@@ -233,7 +234,7 @@ def run_benchmark(orig_opts)
 
   opts = rr_opts.merge({
     # Wrk settings
-    wrk_binary: "wrk",
+    wrk_binary: orig_opts[:wrk_binary] || "wrk",
     wrk_concurrency: orig_opts[:wrk_concurrency],  # This is wrk's own "concurrency" setting for number of requests in flight
     wrk_connections: orig_opts[:wrk_connections],  # Number of connections for wrk to create and use
     wrk_close_connection: orig_opts[:wrk_close_connection],
