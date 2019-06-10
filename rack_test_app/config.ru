@@ -1,7 +1,7 @@
 require "complex"
 require "rack"
 
-if Rails.env.profile?
+if ENV["RACK_ENV"] == "profile"
   use Rack::RubyProf,
     :path => File.expand_path(File.join(__dir__, 'log/profile')),
     :prefix => "rsb-rack-#{Process.pid}-",
