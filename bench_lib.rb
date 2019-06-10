@@ -19,10 +19,11 @@ module BenchLib
       wrk_binary: "wrk",
       wrk_concurrency: 1,            # This is wrk's own "concurrency" setting for number of requests in flight
       wrk_connections: 100,          # Number of connections for wrk to create and use
-      warmup_seconds: 5,
-      benchmark_seconds: 180,
       wrk_script_location: "./final_report.lua",  # This is the lua script for generating the final report, relative to this source file
       wrk_close_connection: false,
+
+      warmup_seconds: 5,
+      benchmark_seconds: 180,
 
       # Runner Config
       before_worker_cmd: "bundle install",

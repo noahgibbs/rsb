@@ -188,22 +188,35 @@ config["configurations"].each do |conf|
   # takes for running a single batch.
   opts = {
     batches: conf["batches"] || 1,
-    framework: [conf["framework"]].flatten(1).map(&:to_sym) || [:rails, :rack],
-    ruby: [conf["ruby"]].flatten(1),
-    url: conf["url"] || "http://127.0.0.1:PORT/static",
-    benchmark_seconds: conf["duration"] ? conf["duration"] : 120,
-    warmup_seconds: conf["warmup"] ? conf["warmup"] : 15,
-    app_server: conf["app_server"] ? [conf["app_server"]].flatten(1).map(&:to_sym) : [:puma],
-    suppress_server_output: conf["debug_server"] ? !conf["debug_server"] : true,
-    rack_env: conf["rack_env"] || "production",
-    processes: conf["processes"] || 1,
-    threads: conf["threads"] || 1,
-    extra_env: conf["extra_env"] || {},
-    bundler_version: conf["bundler_version"] || "1.17.3",
+
     wrk_binary: conf["wrk"]["binary"] || "wrk",
     wrk_concurrency: conf["wrk"]["threads"] || 1,
     wrk_connections: conf["wrk"]["connections"] || 5,
     wrk_close_connection: conf["close_connection"] ? conf["close_connection"] : false,
+    wrk_script_location: conf["wrk"]["script_location"] ? conf["wrk"]["script_location"] : "./final_report.lua",
+
+    warmup_seconds: conf["warmup"] ? conf["warmup"] : 15,
+    benchmark_seconds: conf["duration"] ? conf["duration"] : 120,
+
+    rack_env: conf["rack_env"] || "production",
+    bundler_version: conf["bundler_version"] || "1.17.3",
+    extra_env: conf["extra_env"] || {},
+    server_ruby_opts: conf["ruby_opts"] ? conf["ruby_opts"] : nil,
+
+    url: conf["url"] || "http://127.0.0.1:PORT/static",
+
+    suppress_server_output: conf["debug_server"] ? !conf["debug_server"] : true,
+
+    # This set of options interact in an interesting and complicated way with
+    # the underlying options - "framework" is basically an abstraction on top
+    # of the raw commands to start the server, for instance. And "ruby"
+    # turns into an rvm command that runs in the child process.
+    framework: [conf["framework"]].flatten(1).map(&:to_sym) || [:rails, :rack],
+    app_server: conf["app_server"] ? [conf["app_server"]].flatten(1).map(&:to_sym) : [:puma],
+    processes: conf["processes"] || 1,
+    threads: conf["threads"] || 1,
+    ruby: [conf["ruby"]].flatten(1),
+
   }
   check_legal_strings_in_array BenchLib::OptionsBuilder::APP_SERVERS, opts[:app_server], "Unexpected app server name(s)"
   check_legal_strings_in_array BenchLib::OptionsBuilder::FRAMEWORKS, opts[:framework], "Unexpected framework name(s)"
@@ -293,7 +306,7 @@ def run_benchmark(orig_opts)
     puts "Caught exception in #{orig_opts[:framework]} app: #{exc.message.inspect}"
     puts "Backtrace:\n#{exc.backtrace.join("\n")}"
     if FAIL_ON_ERROR
-      STDERR.puts "The runner is configured to fail on error, so do that."
+      STDERR.puts "Failing on error, as requested."
       exit -1
     else
       puts "#{orig_opts[:framework].to_s.capitalize} app for Ruby #{orig_opts[:ruby].inspect} failed, but we'll keep going..."
