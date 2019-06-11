@@ -26,11 +26,13 @@ dependencies and more repeatability? Then RSB may be for you.
 
 ## Usage
 
-### Quick Version
+### Quick Start
 
 There are a small, specific number of Rubies that are already supported (have a Gemfile.lock.) You can see which ones by looking in the rails_test_app or rack_test_app directory - but they include 2.0.0p0, 2.0.0p648, 2.1.0, 2.2.10, 2.3.8, 2.4.5, 2.5.3 and 2.6.0. JRuby 9.2.0.0 is also partially supported - see below in this file for more details.
 
 You can add support for another Ruby by adding a Gemfile for it - see the existing Gemfiles for examples, but they're quite simple.
+
+(Note: there is an experimental branch which allows dynamically generating Gemfiles for any Ruby)
 
 If you want to check the current speed of a benchmark on your current machine, you can do it fairly simply:
 
