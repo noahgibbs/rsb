@@ -24,6 +24,10 @@ reasonably can.
 Would you like a much-simplified Ruby on Rails benchmark with fewer
 dependencies and more repeatability? Then RSB may be for you.
 
+This benchmark, like Rails Ruby Bench, was written and maintained via
+sponsorship from AppFolio (https://engineering.appfolio.com). Thank
+you, AppFolio!
+
 ## Usage
 
 ### Quick Version
