@@ -52,9 +52,10 @@ class TestSubprocess < Minitest::Test
 
     wrk_args = File.read('/tmp/rsb_subprocess_args.txt')
     STDERR.puts "WRK ARGS: #{wrk_args.inspect}"
+    this_dir = File.expand_path(File.join(__dir__, ".."))
     assert_equal <<EXPECTED, wrk_args
--t3 -c4 -d7s -s/Users/noah.gibbs/src/ruby/rsb/./final_report.lua --latency http://127.0.0.1:4321/someurl
--t3 -c4 -d9s -s/Users/noah.gibbs/src/ruby/rsb/./final_report.lua --latency http://127.0.0.1:4321/someurl
+-t3 -c4 -d7s -s#{this_dir}/./final_report.lua --latency http://127.0.0.1:4321/someurl
+-t3 -c4 -d9s -s#{this_dir}/./final_report.lua --latency http://127.0.0.1:4321/someurl
 EXPECTED
     File.unlink '/tmp/rsb_subprocess_args.txt'
   end
