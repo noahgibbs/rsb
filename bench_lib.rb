@@ -20,10 +20,11 @@ module BenchLib
       wrk_binary: "wrk",
       wrk_concurrency: 1,            # This is wrk's own "concurrency" setting for number of requests in flight
       wrk_connections: 100,          # Number of connections for wrk to create and use
-      warmup_seconds: 5,
-      benchmark_seconds: 180,
       wrk_script_location: "./final_report.lua",  # This is the lua script for generating the final report, relative to this source file
       wrk_close_connection: false,
+
+      warmup_seconds: 5,
+      benchmark_seconds: 180,
 
       # Runner Config
       before_worker_cmd: "bundle install",
@@ -86,6 +87,7 @@ module BenchLib
         #"ec2 instance type" => `wget -q -O - http://169.254.169.254/latest/meta-data/instance-type`,
         "uname" => `uname -a`,
         "dir" => Dir.pwd,
+        "worker pid" => Process.pid,
     }
   end
 
@@ -168,9 +170,8 @@ module BenchLib
 
     def url_available?
       system("curl #{@url} 1>/dev/null 2>&1")
-      $?.success? # For some horrible reason, (only) on Linux, "system" is returning true on failure w/ output suppressed...
-      # Example for irb: result=system("curl http://127.0.0.1:4321/static &>/dev/null")
-      # Note: this is an old bug - repros on 2.0.0-p0 through 2.6.0, minimum.
+      $?.success?  # Think I can just return the system line above - was having trouble because I was
+      # using bash-specific syntax, which doesn't work on Linux /bin/sh...
     end
 
     def ensure_url_available
@@ -490,10 +491,9 @@ UNICORN_CONFIG
         server_pre_cmd: "bundle exec rake db:migrate",
         server_kill_matcher: "unicorn",
 
-        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
-        extra_env: {
-          "RSB_EXTRA_GEMFILES" => "Gemfile.unicorn",
-        }
+        extra_gems: [
+          [ "unicorn", "5.5.1"],
+        ],
       }
     end
 
@@ -514,10 +514,9 @@ UNICORN_CONFIG
         server_cmd: "bundle exec unicorn -p PORT --config-file #{cf}",
         server_kill_matcher: "rackup",
 
-        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
-        extra_env: {
-          "RSB_EXTRA_GEMFILES" => "Gemfile.unicorn",
-        }
+        extra_gems: [
+          [ "unicorn", "5.5.1"],
+        ],
       }
     end
 
@@ -536,10 +535,9 @@ UNICORN_CONFIG
         server_pre_cmd: "bundle exec rake db:migrate",
         server_kill_matcher: "rsb-thin-#{Process.pid}",
 
-        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
-        extra_env: {
-          "RSB_EXTRA_GEMFILES" => "Gemfile.thin",
-        }
+        extra_gems: [
+          [ "thin", "1.7.2"],
+        ],
       }
     end
 
@@ -557,10 +555,9 @@ UNICORN_CONFIG
         server_cmd: "bundle exec thin -p PORT --tag rsb-thin-#{Process.pid} #{concurrency_options}",
         server_kill_matcher: "rsb-thin-#{Process.pid}",
 
-        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
-        extra_env: {
-          "RSB_EXTRA_GEMFILES" => "Gemfile.thin",
-        }
+        extra_gems: [
+          [ "thin", "1.7.2"],
+        ],
       }
     end
 
@@ -580,10 +577,9 @@ UNICORN_CONFIG
         server_pre_cmd: "bundle exec rake db:migrate",
         server_kill_matcher: "puma_rsb_rails_#{Process.pid}",
 
-        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
-        extra_env: {
-          "RSB_EXTRA_GEMFILES" => "Gemfile.puma",
-        }
+        extra_gems: [
+          [ "puma", "3.12.1"],
+        ],
       }
     end
 
@@ -602,10 +598,9 @@ UNICORN_CONFIG
         server_cmd: "bundle exec puma -p PORT -t #{threads}:#{threads} #{worker_opts} --tag puma_rsb_rack_#{Process.pid}",
         server_kill_matcher: "puma_rsb_rack_#{Process.pid}",
 
-        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
-        extra_env: {
-          "RSB_EXTRA_GEMFILES" => "Gemfile.puma",
-        }
+        extra_gems: [
+          [ "puma", "3.12.1"],
+        ],
       }
     end
 
@@ -679,5 +674,293 @@ UNICORN_CONFIG
     #smaller.flat_map { |rest| outer.map { |item| [item, *rest] } }
 
     outer.flat_map { |item| smaller.map { |rest| [ item ] + rest } }
+  end
+
+  module GemfileGenerator
+    # This list is a bit optimistic
+    RUBY_TYPES = [ :cruby, :jruby, :truffleruby ]
+
+    def gemfile_contents(ruby_version, ruby_type, framework, extras)
+      send("#{ruby_type}_#{framework}_gemfile_contents", ruby_version, extras: extras)
+    end
+
+    def parse_cruby_version(cruby_version)
+      raise "No support for CRuby major versions other than 2!" if cruby_version[0..1] != "2."
+
+      if cruby_version =~ /^(\d)\.(\d)\.(\d+)\-?(p[\d]+)?(pre(.*))$/
+        major = $1
+        minor = $1.to_i
+        micro = $2.to_i
+        patch = $3
+        pre = $5
+      else
+        raise "Unexpected Ruby version format: #{cruby_version.inspect}"
+      end
+
+      raise "No support for Ruby versions outside 2.0 through 2.7!" unless [0..7].include?(minor)
+      [ major, minor, micro, patch, pre ]
+    end
+
+    def cruby_rails_gemfile_contents(ruby_version, extras: [])
+      major, minor, micro, _ = parse_cruby_version(ruby_version)
+      extra_gems = ""
+      extra_gems += 'gem "psych", "= 2.2.4"' + "\n" if minor == 0
+      extras.each do |row|
+        g, ver, constraint = *row
+        constraint ||= "= #{ver}" # No constraint? Require it exactly.
+        extra_gems += "gem \"#{g}\", \"#{constraint}\"\n"
+      end
+
+      return <<GEMFILE
+ruby "#{major}.#{minor}.#{micro}"
+#{extra_gems}
+
+eval_gemfile "Gemfile.common"
+GEMFILE
+    end
+
+    alias cruby_rack_gemfile_contents cruby_rails_gemfile_contents
+
+    def jruby_rails_gemfile_contents(ruby_version)
+      raise "Currently, there is only JRuby 9.2.X.Y support!" unless ruby_version[0..3] == "9.2."
+
+      return <<GEMFILE
+ruby "2.5.0"
+
+eval_gemfile "Gemfile.common"
+GEMFILE
+    end
+
+    alias jruby_rack_gemfile_contents jruby_rails_gemfile_contents
+
+    def truffleruby_rails_gemfile_contents(ruby_version)
+      raise "No TruffleRuby support (yet)"
+    end
+
+    def cruby_rails_gemfile_lock_contents(ruby_version, extra_gems: [])
+      major, minor, micro, patch, _ = parse_cruby_version ruby_version
+
+      extra_deps  = ""
+      extra_specs = ""
+      if minor == 0
+        extra_deps  += "    psych (2.2.4)\n"
+        extra_specs += "  psych (= 2.2.4)\n"
+      end
+      extra_gems.each do |row|
+        g, ver, constraint = *row
+        constraint ||= "= #{ver}"  # No constraint? List it as exact version
+        extra_specs += "    #{g} (#{ver})"
+        extra_deps += "  #{g} (#{constraint})\n"
+      end
+
+      return <<GEMFILE_LOCK
+GEM
+  remote: https://rubygems.org/
+  specs:
+    actionmailer (4.2.11)
+      actionpack (= 4.2.11)
+      actionview (= 4.2.11)
+      activejob (= 4.2.11)
+      mail (~> 2.5, >= 2.5.4)
+      rails-dom-testing (~> 1.0, >= 1.0.5)
+    actionpack (4.2.11)
+      actionview (= 4.2.11)
+      activesupport (= 4.2.11)
+      rack (~> 1.6)
+      rack-test (~> 0.6.2)
+      rails-dom-testing (~> 1.0, >= 1.0.5)
+      rails-html-sanitizer (~> 1.0, >= 1.0.2)
+    actionview (4.2.11)
+      activesupport (= 4.2.11)
+      builder (~> 3.1)
+      erubis (~> 2.7.0)
+      rails-dom-testing (~> 1.0, >= 1.0.5)
+      rails-html-sanitizer (~> 1.0, >= 1.0.3)
+    activejob (4.2.11)
+      activesupport (= 4.2.11)
+      globalid (>= 0.3.0)
+    activemodel (4.2.11)
+      activesupport (= 4.2.11)
+      builder (~> 3.1)
+    activerecord (4.2.11)
+      activemodel (= 4.2.11)
+      activesupport (= 4.2.11)
+      arel (~> 6.0)
+    activesupport (4.2.11)
+      i18n (~> 0.7)
+      minitest (~> 5.1)
+      thread_safe (~> 0.3, >= 0.3.4)
+      tzinfo (~> 1.1)
+    arel (6.0.4)
+    binding_of_caller (0.8.0)
+      debug_inspector (>= 0.0.1)
+    builder (3.2.3)
+    byebug (9.0.6)
+    coffee-rails (4.1.1)
+      coffee-script (>= 2.2.0)
+      railties (>= 4.0.0, < 5.1.x)
+    coffee-script (2.4.1)
+      coffee-script-source
+      execjs
+    coffee-script-source (1.12.2)
+    concurrent-ruby (1.1.3)
+    crass (1.0.4)
+    debug_inspector (0.0.3)
+    erubis (2.7.0)
+    execjs (2.7.0)
+    ffi (1.9.25)
+    globalid (0.4.1)
+      activesupport (>= 4.2.0)
+    i18n (0.9.5)
+      concurrent-ruby (~> 1.0)
+    jbuilder (2.8.0)
+      activesupport (>= 4.2.0)
+      multi_json (>= 1.2)
+    jquery-rails (4.3.3)
+      rails-dom-testing (>= 1, < 3)
+      railties (>= 4.2.0)
+      thor (>= 0.14, < 2.0)
+    json (1.8.6)
+    loofah (2.2.3)
+      crass (~> 1.0.2)
+      nokogiri (>= 1.5.9)
+    mail (2.7.1)
+      mini_mime (>= 0.1.1)
+    mini_mime (1.0.1)
+    mini_portile2 (2.1.0)
+    minitest (5.11.3)
+    multi_json (1.13.1)
+    nokogiri (1.6.8.1)
+      mini_portile2 (~> 2.1.0)
+    rack (1.6.11)
+    rack-test (0.6.3)
+      rack (>= 1.0)
+    rails (4.2.11)
+      actionmailer (= 4.2.11)
+      actionpack (= 4.2.11)
+      actionview (= 4.2.11)
+      activejob (= 4.2.11)
+      activemodel (= 4.2.11)
+      activerecord (= 4.2.11)
+      activesupport (= 4.2.11)
+      bundler (>= 1.3.0, < 2.0)
+      railties (= 4.2.11)
+      sprockets-rails
+    rails-deprecated_sanitizer (1.0.3)
+      activesupport (>= 4.2.0.alpha)
+    rails-dom-testing (1.0.9)
+      activesupport (>= 4.2.0, < 5.0)
+      nokogiri (~> 1.6)
+      rails-deprecated_sanitizer (>= 1.0.1)
+    rails-html-sanitizer (1.0.4)
+      loofah (~> 2.2, >= 2.2.2)
+    railties (4.2.11)
+      actionpack (= 4.2.11)
+      activesupport (= 4.2.11)
+      rake (>= 0.8.7)
+      thor (>= 0.18.1, < 2.0)
+    rake (12.3.1)
+    rb-fsevent (0.10.3)
+    rb-inotify (0.9.10)
+      ffi (>= 0.5.0, < 2)
+    rdoc (4.3.0)
+    sass (3.7.2)
+      sass-listen (~> 4.0.0)
+    sass-listen (4.0.0)
+      rb-fsevent (~> 0.9, >= 0.9.4)
+      rb-inotify (~> 0.9, >= 0.9.7)
+    sass-rails (5.0.7)
+      railties (>= 4.0.0, < 6)
+      sass (~> 3.1)
+      sprockets (>= 2.8, < 4.0)
+      sprockets-rails (>= 2.0, < 4.0)
+      tilt (>= 1.1, < 3)
+    sdoc (0.4.2)
+      json (~> 1.7, >= 1.7.7)
+      rdoc (~> 4.0)
+    spring (2.0.2)
+      activesupport (>= 4.2)
+    sprockets (3.7.2)
+      concurrent-ruby (~> 1.0)
+      rack (> 1, < 3)
+    sprockets-rails (3.2.1)
+      actionpack (>= 4.0)
+      activesupport (>= 4.0)
+      sprockets (>= 3.0.0)
+    sqlite3 (1.3.13)
+    thor (0.20.3)
+    thread_safe (0.3.6)
+    tilt (2.0.9)
+    turbolinks (2.5.4)
+      coffee-rails
+    tzinfo (1.2.5)
+      thread_safe (~> 0.1)
+    uglifier (4.1.20)
+      execjs (>= 0.3.0, < 3)
+    web-console (2.3.0)
+      activemodel (>= 4.0)
+      binding_of_caller (>= 0.7.2)
+      railties (>= 4.0)
+      sprockets-rails (>= 2.0, < 4.0)
+#{extra_specs}
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  byebug
+  coffee-rails (~> 4.1.0)
+  jbuilder (~> 2.0)
+  jquery-rails
+  psych (= 2.2.4)
+  rails (= 4.2.11)
+  sass-rails (~> 5.0)
+  sdoc (~> 0.4.0)
+  spring
+  sqlite3
+  turbolinks (= 2.5.4)
+  uglifier (>= 1.3.0)
+  web-console (~> 2.0)
+
+RUBY VERSION
+   ruby #{major}.#{minor}.#{micro}#{patch}
+
+BUNDLED WITH
+   1.17.3
+GEMFILE_LOCK
+    end
+
+    def cruby_rack_gemfile_lock_contents(ruby_version)
+      major, minor, micro, _ = parse_cruby_version ruby_version
+
+      extra_deps = ""
+      extra_specs = ""
+      if minor == 0
+        extra_deps  += "    psych (2.2.4)\n"
+        extra_specs += "  psych (= 2.2.4)\n"
+      end
+
+      return <<GEMFILE_LOCK
+GEM
+  remote: https://rubygems.org/
+  specs:
+#{extra_specs}    rack (1.6.11)
+    rake (12.3.2)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+#{extra_deps}  rack
+  rake
+
+RUBY VERSION
+   ruby #{major}.#{minor}.#{micro}#{patch}
+
+BUNDLED WITH
+   1.17.3
+GEMFILE_LOCK
+    end
+
   end
 end

@@ -1,0 +1,25 @@
+{
+    "runner": {
+        "#": "Version, if present, must be 1",
+        "version": 1
+    },
+    "configurations": [
+        {
+            "wrk": {
+                "binary": [
+                    "./wrk",
+                    "./old_wrk",
+                    "./wrk --no-keepalive",
+                    "./old_wrk -H \"Connection: Close\"",
+                    "./wrk -H \"Connection: Close\""
+                ]
+            },
+            "batches": 10,
+            "duration": 60,
+            "warmup": 5,
+            "ruby": ["2.6.0"],
+            "framework": ["rack"],
+            "#debug_server": true
+        }
+    ]
+}

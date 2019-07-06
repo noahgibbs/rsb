@@ -33,8 +33,9 @@ opts = {
   verbose: 1,
 }
 
-# No concurrency specified
+# Default concurrency
 opts = options_by_framework_and_server(which_app, server).merge(opts)
+extra_gems = rr_opts.delete(:extra_gems) || [] # Can be used for dynamic Gemfile generation
 
 # Here's the meat of how to turn those options into benchmark output
 Dir.chdir("#{which_app}_test_app") do

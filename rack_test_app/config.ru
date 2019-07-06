@@ -1,6 +1,13 @@
 require "complex"
 require "rack"
 
+if ENV["RACK_ENV"] == "profile"
+  use Rack::RubyProf,
+    :path => File.expand_path(File.join(__dir__, 'log/profile')),
+    :prefix => "rsb-rack-#{Process.pid}-",
+    :max_requests => ENV["RSB_PROFILE_REQS"] || 10_000
+end
+
 class SpeedTest
   ROUTES = {
     "/" => proc { [200, {"Content-Type" => "text/html"}, ["Hello World!"]] },

@@ -30,11 +30,13 @@ you, AppFolio!
 
 ## Usage
 
-### Quick Version
+### Quick Start
 
 There are a small, specific number of Rubies that are already supported (have a Gemfile.lock.) You can see which ones by looking in the rails_test_app or rack_test_app directory - but they include 2.0.0p0, 2.0.0p648, 2.1.0, 2.2.10, 2.3.8, 2.4.5, 2.5.3 and 2.6.0. JRuby 9.2.0.0 is also partially supported - see below in this file for more details.
 
 You can add support for another Ruby by adding a Gemfile for it - see the existing Gemfiles for examples, but they're quite simple.
+
+(Note: there is an experimental branch which allows dynamically generating Gemfiles for any Ruby)
 
 If you want to check the current speed of a benchmark on your current machine, you can do it fairly simply:
 
@@ -173,9 +175,6 @@ especially when not using the database in the measured route.
 
 ## Load Testing Tools
 
-ApacheBench is not recommended for new uses - its reporting and
-accuracy are poor and there are bugs and edge-cases that make it hard
-to be sure you're getting what you think you are.
+ApacheBench is no longer being used for RSB, and any remaining vestiges of it are just that. It doesn't report individual timings below millisecond resolution, its KeepAlive code is HTTP 1.0-only and causes bugs in Puma, and it has trouble with dynamic documents (cases where responses aren't byte-for-byte) identical. After extensive attempts to use it, the accuracy issues have been insurmountable (http://engineering.appfolio.com/appfolio-engineering/2019/1/18/benchmarking-ruby-app-servers-badly).
 
-For newer use cases, we follow Phusion.nl's recommendation for "wrk",
-a simple, powerful and accurate benchmarking program.
+For newer use cases, we follow Phusion.nl's recommendation for "wrk", a simple, powerful and accurate benchmarking program that avoids reopening connections (Google "ephemeral port exhaustion" for details on why reopening connections gets to be a problem quickly on Linux.)

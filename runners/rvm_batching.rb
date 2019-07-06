@@ -44,12 +44,16 @@
 # * app_server: what app server to use, such as puma, webrick or unicorn
 # * processes: number of processes to use for the server - numbers > 1 may not be compatible with some app servers
 # * threads: number of threads to use for the server - numbers > 1 may not be compatible with some app servers
-# * wrk: settings for the wrk load tester: "connections", "threads"
+# * wrk: settings for the wrk load tester: "connections", "threads", "binary", "script_location"
 # * rack_env: value to use for RACK_ENV and RAILS_ENV
+# * gemfile: if "static", use an existing Gemfile.(version).lock. If "dynamic", try to generate one. Default: "static"
 # * debug_server: send server console output to your own console instead
 #   of suppressing it.
 # * close_connection: turn off KeepAlive server-side for servers that have
 #   KeepAlive bugs.
+# * batch_retry: if specified as true, check files in output directory and only add new
+#   files as needed to complete one full configuration as specified.
+# * out_dir: by default, "data". Directory for output of batch data.
 #
 # * threads and processes can be specified for app servers that support them. However,
 #   you may need multiple configurations if you're using multiple app servers with
@@ -142,6 +146,7 @@ KNOWN_RUNNER_KEYS = [
 KNOWN_CONFIG_KEYS = [
   "ruby", "framework", "batches", "duration", "warmup", "wrk", "url", "app_server",
   "processes", "threads", "debug_server", "close_connection", "rack_env", "extra_env",
+  "gemfile",
 ]
 
 if ARGV.size != 1
@@ -185,21 +190,35 @@ config["configurations"].each do |conf|
   # takes for running a single batch.
   opts = {
     batches: conf["batches"] || 1,
-    framework: [conf["framework"]].flatten(1).map(&:to_sym) || [:rails, :rack],
-    ruby: [conf["ruby"]].flatten(1),
-    url: conf["url"] || "http://127.0.0.1:PORT/static",
-    benchmark_seconds: conf["duration"] ? conf["duration"] : 120,
-    warmup_seconds: conf["warmup"] ? conf["warmup"] : 15,
-    app_server: conf["app_server"] ? [conf["app_server"]].flatten(1).map(&:to_sym) : [:puma],
-    suppress_server_output: conf["debug_server"] ? conf["debug_server"] : false,
-    rack_env: conf["rack_env"] || "production",
-    processes: conf["processes"] || 1,
-    threads: conf["threads"] || 1,
-    extra_env: conf["extra_env"] || {},
-    bundler_version: conf["bundler_version"] || "1.17.3",
+
+    wrk_binary: conf["wrk"]["binary"] || "wrk",
     wrk_concurrency: conf["wrk"]["threads"] || 1,
     wrk_connections: conf["wrk"]["connections"] || 5,
     wrk_close_connection: conf["close_connection"] ? conf["close_connection"] : false,
+    wrk_script_location: conf["wrk"]["script_location"] ? conf["wrk"]["script_location"] : "./final_report.lua",
+
+    warmup_seconds: conf["warmup"] ? conf["warmup"] : 15,
+    benchmark_seconds: conf["duration"] ? conf["duration"] : 120,
+
+    rack_env: conf["rack_env"] || "production",
+    bundler_version: conf["bundler_version"] || "1.17.3",
+    extra_env: conf["extra_env"] || {},
+    server_ruby_opts: conf["ruby_opts"] ? conf["ruby_opts"] : nil,
+
+    url: conf["url"] || "http://127.0.0.1:PORT/static",
+
+    suppress_server_output: conf["debug_server"] ? !conf["debug_server"] : true,
+
+    # This set of options interact in an interesting and complicated way with
+    # the underlying options - "framework" is basically an abstraction on top
+    # of the raw commands to start the server, for instance. And "ruby"
+    # turns into an rvm command that runs in the child process.
+    framework: [conf["framework"]].flatten(1).map(&:to_sym) || [:rails, :rack],
+    app_server: conf["app_server"] ? [conf["app_server"]].flatten(1).map(&:to_sym) : [:puma],
+    processes: conf["processes"] || 1,
+    threads: conf["threads"] || 1,
+    ruby: [conf["ruby"]].flatten(1),
+
   }
   check_legal_strings_in_array BenchLib::OptionsBuilder::APP_SERVERS, opts[:app_server], "Unexpected app server name(s)"
   check_legal_strings_in_array BenchLib::OptionsBuilder::FRAMEWORKS, opts[:framework], "Unexpected framework name(s)"
@@ -227,10 +246,30 @@ COUNTERS = {
 def run_benchmark(orig_opts)
   extra_env = orig_opts.delete(:extra_env) || {}  # Have to merge after getting app_server env vars
   rr_opts = options_by_framework_and_server(orig_opts[:framework], orig_opts[:app_server], processes: orig_opts[:processes], threads: orig_opts[:threads])
+  extra_gems = rr_opts.delete(:extra_gems) || []
+
+  bench_dir = "#{orig_opts[:framework]}_test_app"
+
+  bundle_gemfile = nil
+  case orig_opts[:gemfile]
+  when NilClass, "dynamic"
+    # Write out Gemfile.dynamic
+    File.open("#{bench_dir}/Gemfile.dynamic", "w") do |f|
+      f.write(gemfile_contents(orig_opts[:ruby], :cruby, orig_opts[:framework], extra_gems))
+    end
+    bundle_gemfile = "Gemfile.dynamic"
+  when String
+    bundle_gemfile = "#{bench_dir}/#{orig_opts[:gemfile]}"
+    unless File.exist?(bundle_gemfile)
+      raise "Supplied Gemfile path does not exist for this framework: #{bundle_gemfile.inspect}!"
+    end
+  else
+    raise "Unrecognized value for \"gemfile\" option: #{orig_opts[:gemfile].inspect}!"
+  end
 
   opts = rr_opts.merge({
     # Wrk settings
-    wrk_binary: "wrk",
+    wrk_binary: orig_opts[:wrk_binary] || "wrk",
     wrk_concurrency: orig_opts[:wrk_concurrency],  # This is wrk's own "concurrency" setting for number of requests in flight
     wrk_connections: orig_opts[:wrk_connections],  # Number of connections for wrk to create and use
     wrk_close_connection: orig_opts[:wrk_close_connection],
@@ -240,12 +279,12 @@ def run_benchmark(orig_opts)
 
     # Bundler/Rack/Gem/Env config
     bundler_version: orig_opts[:bundler_version],
-    #bundle_gemfile: nil,      # If explicitly nil, don't set. If omitted, set to Gemfile.$ruby_version
 
     :verbose => 1,
 
     before_worker_cmd: "rvm use #{orig_opts[:ruby]} && #{SETTINGS_DEFAULTS[:before_worker_cmd]}",  # Run before each batch
-    bundle_gemfile: "Gemfile.#{orig_opts[:ruby]}",
+    bundle_gemfile: bundle_gemfile,
+    rack_env: orig_opts[:rack_env],
 
     # Useful for debugging, annoying for day-to-day use
     suppress_server_output: orig_opts[:suppress_server_output],
@@ -260,7 +299,7 @@ def run_benchmark(orig_opts)
     COUNTERS[:runs] += 1
     env = nil # Set scope for this local
 
-    Dir.chdir("#{orig_opts[:framework]}_test_app") do
+    Dir.chdir(bench_dir) do
       print "Benchmarking Options:\n#{JSON.pretty_generate(opts)}\n\n"
       env = BenchmarkEnvironment.new opts
       env.run_wrk
@@ -288,7 +327,7 @@ def run_benchmark(orig_opts)
     puts "Caught exception in #{orig_opts[:framework]} app: #{exc.message.inspect}"
     puts "Backtrace:\n#{exc.backtrace.join("\n")}"
     if FAIL_ON_ERROR
-      STDERR.puts "The runner is configured to fail on error, so do that."
+      STDERR.puts "Failing on error, as requested."
       exit -1
     else
       puts "#{orig_opts[:framework].to_s.capitalize} app for Ruby #{orig_opts[:ruby].inspect} failed, but we'll keep going..."
