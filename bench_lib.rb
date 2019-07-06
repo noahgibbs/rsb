@@ -468,10 +468,9 @@ UNICORN_CONFIG
         server_pre_cmd: "bundle exec rake db:migrate",
         server_kill_matcher: "unicorn",
 
-        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
-        extra_env: {
-          "RSB_EXTRA_GEMFILES" => "Gemfile.unicorn",
-        }
+        extra_gems: [
+          [ "unicorn", "5.5.1"],
+        ],
       }
     end
 
@@ -492,10 +491,9 @@ UNICORN_CONFIG
         server_cmd: "bundle exec unicorn -p PORT --config-file #{cf}",
         server_kill_matcher: "rackup",
 
-        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
-        extra_env: {
-          "RSB_EXTRA_GEMFILES" => "Gemfile.unicorn",
-        }
+        extra_gems: [
+          [ "unicorn", "5.5.1"],
+        ],
       }
     end
 
@@ -514,10 +512,9 @@ UNICORN_CONFIG
         server_pre_cmd: "bundle exec rake db:migrate",
         server_kill_matcher: "rsb-thin-#{Process.pid}",
 
-        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
-        extra_env: {
-          "RSB_EXTRA_GEMFILES" => "Gemfile.thin",
-        }
+        extra_gems: [
+          [ "thin", "1.7.2"],
+        ],
       }
     end
 
@@ -535,10 +532,9 @@ UNICORN_CONFIG
         server_cmd: "bundle exec thin -p PORT --tag rsb-thin-#{Process.pid} #{concurrency_options}",
         server_kill_matcher: "rsb-thin-#{Process.pid}",
 
-        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
-        extra_env: {
-          "RSB_EXTRA_GEMFILES" => "Gemfile.thin",
-        }
+        extra_gems: [
+          [ "thin", "1.7.2"],
+        ],
       }
     end
 
@@ -558,10 +554,9 @@ UNICORN_CONFIG
         server_pre_cmd: "bundle exec rake db:migrate",
         server_kill_matcher: "puma_rsb_rails_#{Process.pid}",
 
-        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
-        extra_env: {
-          "RSB_EXTRA_GEMFILES" => "Gemfile.puma",
-        }
+        extra_gems: [
+          [ "puma", "3.12.1"],
+        ],
       }
     end
 
@@ -580,10 +575,9 @@ UNICORN_CONFIG
         server_cmd: "bundle exec puma -p PORT -t #{threads}:#{threads} #{worker_opts} --tag puma_rsb_rack_#{Process.pid}",
         server_kill_matcher: "puma_rsb_rack_#{Process.pid}",
 
-        # Extra Gemfile, specified by an environment variable (see Gemfile.common)
-        extra_env: {
-          "RSB_EXTRA_GEMFILES" => "Gemfile.puma",
-        }
+        extra_gems: [
+          [ "puma", "3.12.1"],
+        ],
       }
     end
 
@@ -662,6 +656,10 @@ UNICORN_CONFIG
   module GemfileGenerator
     # This list is a bit optimistic
     RUBY_TYPES = [ :cruby, :jruby, :truffleruby ]
+
+    def gemfile_contents(ruby_version, ruby_type, framework, extras)
+      send("#{ruby_type}_#{framework}_gemfile_contents", ruby_version, extras: extras)
+    end
 
     def parse_cruby_version(cruby_version)
       raise "No support for CRuby major versions other than 2!" if cruby_version[0..1] != "2."

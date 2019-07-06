@@ -44,8 +44,9 @@
 # * app_server: what app server to use, such as puma, webrick or unicorn
 # * processes: number of processes to use for the server - numbers > 1 may not be compatible with some app servers
 # * threads: number of threads to use for the server - numbers > 1 may not be compatible with some app servers
-# * wrk: settings for the wrk load tester: "connections", "threads"
+# * wrk: settings for the wrk load tester: "connections", "threads", "binary", "script_location"
 # * rack_env: value to use for RACK_ENV and RAILS_ENV
+# * gemfile: if "static", use an existing Gemfile.(version).lock. If "dynamic", try to generate one. Default: "static"
 # * debug_server: send server console output to your own console instead
 #   of suppressing it.
 # * close_connection: turn off KeepAlive server-side for servers that have
@@ -145,6 +146,7 @@ KNOWN_RUNNER_KEYS = [
 KNOWN_CONFIG_KEYS = [
   "ruby", "framework", "batches", "duration", "warmup", "wrk", "url", "app_server",
   "processes", "threads", "debug_server", "close_connection", "rack_env", "extra_env",
+  "gemfile",
 ]
 
 if ARGV.size != 1
@@ -244,6 +246,26 @@ COUNTERS = {
 def run_benchmark(orig_opts)
   extra_env = orig_opts.delete(:extra_env) || {}  # Have to merge after getting app_server env vars
   rr_opts = options_by_framework_and_server(orig_opts[:framework], orig_opts[:app_server], processes: orig_opts[:processes], threads: orig_opts[:threads])
+  extra_gems = rr_opts.delete(:extra_gems) || []
+
+  bench_dir = "#{orig_opts[:framework]}_test_app"
+
+  bundle_gemfile = nil
+  case orig_opts[:gemfile]
+  when NilClass, "dynamic"
+    # Write out Gemfile.dynamic
+    File.open("#{bench_dir}/Gemfile.dynamic", "w") do |f|
+      f.write(gemfile_contents(orig_opts[:ruby], :cruby, orig_opts[:framework], extra_gems))
+    end
+    bundle_gemfile = "Gemfile.dynamic"
+  when String
+    bundle_gemfile = "#{bench_dir}/#{orig_opts[:gemfile]}"
+    unless File.exist?(bundle_gemfile)
+      raise "Supplied Gemfile path does not exist for this framework: #{bundle_gemfile.inspect}!"
+    end
+  else
+    raise "Unrecognized value for \"gemfile\" option: #{orig_opts[:gemfile].inspect}!"
+  end
 
   opts = rr_opts.merge({
     # Wrk settings
@@ -257,12 +279,11 @@ def run_benchmark(orig_opts)
 
     # Bundler/Rack/Gem/Env config
     bundler_version: orig_opts[:bundler_version],
-    #bundle_gemfile: nil,      # If explicitly nil, don't set. If omitted, set to Gemfile.$ruby_version
 
     :verbose => 1,
 
     before_worker_cmd: "rvm use #{orig_opts[:ruby]} && #{SETTINGS_DEFAULTS[:before_worker_cmd]}",  # Run before each batch
-    bundle_gemfile: "Gemfile.#{orig_opts[:ruby]}",
+    bundle_gemfile: bundle_gemfile,
     rack_env: orig_opts[:rack_env],
 
     # Useful for debugging, annoying for day-to-day use
@@ -278,7 +299,7 @@ def run_benchmark(orig_opts)
     COUNTERS[:runs] += 1
     env = nil # Set scope for this local
 
-    Dir.chdir("#{orig_opts[:framework]}_test_app") do
+    Dir.chdir(bench_dir) do
       print "Benchmarking Options:\n#{JSON.pretty_generate(opts)}\n\n"
       env = BenchmarkEnvironment.new opts
       env.run_wrk

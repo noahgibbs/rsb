@@ -101,6 +101,7 @@ COUNTERS = {
 
 def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
   rr_opts = options_by_framework_and_server(rack_or_rails, OPTS[:app_server], processes: OPTS[:processes], threads: OPTS[:threads])
+  extra_gems = rr_opts.delete(:extra_gems) || [] # Can be used for dynamic Gemfile generation
 
   opts = rr_opts.merge({
     # Wrk settings
