@@ -96,6 +96,7 @@
 require_relative "../bench_lib"
 include BenchLib
 include BenchLib::OptionsBuilder
+include BenchLib::GemfileGenerator
 
 require "json"
 
@@ -146,7 +147,10 @@ KNOWN_RUNNER_KEYS = [
 KNOWN_CONFIG_KEYS = [
   "ruby", "framework", "batches", "duration", "warmup", "wrk", "url", "app_server",
   "processes", "threads", "debug_server", "close_connection", "rack_env", "extra_env",
-  "gemfile",
+  "gemfile", "override",
+]
+KNOWN_OVERRIDE_KEYS = [
+  "server_cmd", "port",
 ]
 
 if ARGV.size != 1
@@ -170,6 +174,9 @@ end
 
 config["configurations"].each_with_index do |conf, index|
   check_legal_keys_in_hash KNOWN_CONFIG_KEYS, conf, "Unknown field names in configuration \##{index}/#{num_configs}"
+  if conf["override"]
+    check_legal_keys_in_hash KNOWN_OVERRIDE_KEYS, conf["override"], "Unknown override key(s) in configuration \##{index}/#{num_configs}"
+  end
 end
 
 if config["runner"]["version"] && config["runner"]["version"] != 1
@@ -226,6 +233,7 @@ config["configurations"].each do |conf|
   if conf["override"]
     opts[:override] ||= {}
     opts[:override][:server_cmd] = conf["override"]["server_cmd"] if conf["override"]["server_cmd"]
+    opts[:override][:port] = conf["override"]["port"] if conf["override"]["port"]
   end
 
   opt_runs = get_runs_from_options(opts)

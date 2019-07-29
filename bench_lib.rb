@@ -687,17 +687,17 @@ UNICORN_CONFIG
     def parse_cruby_version(cruby_version)
       raise "No support for CRuby major versions other than 2!" if cruby_version[0..1] != "2."
 
-      if cruby_version =~ /^(\d)\.(\d)\.(\d+)\-?(p[\d]+)?(pre(.*))$/
-        major = $1
-        minor = $1.to_i
-        micro = $2.to_i
-        patch = $3
+      if cruby_version =~ /^(\d)\.(\d)\.(\d+)\-?(p[\d]+)?(pre(.*))?$/
+        major = $1.to_i
+        minor = $2.to_i
+        micro = $3.to_i
+        patch = $4
         pre = $5
       else
         raise "Unexpected Ruby version format: #{cruby_version.inspect}"
       end
 
-      raise "No support for Ruby versions outside 2.0 through 2.7!" unless [0..7].include?(minor)
+      raise "No support for Ruby versions outside 2.0 through 2.7!" unless (0..7).include?(minor)
       [ major, minor, micro, patch, pre ]
     end
 
