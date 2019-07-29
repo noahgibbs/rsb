@@ -181,7 +181,7 @@ module BenchLib
         sleep 0.3
         if i % 30 == 2
           # How to output this most appropriately?
-          puts "Still trying to connect..."
+          puts "Still trying to connect to URL #{@url.inspect}..."
         end
       end
       abort "Could not connect to the server!"

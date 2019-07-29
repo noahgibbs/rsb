@@ -232,8 +232,9 @@ config["configurations"].each do |conf|
   # Any overrides?
   if conf["override"]
     opts[:override] ||= {}
-    opts[:override][:server_cmd] = conf["override"]["server_cmd"] if conf["override"]["server_cmd"]
-    opts[:override][:port] = conf["override"]["port"] if conf["override"]["port"]
+    KNOWN_OVERRIDE_KEYS.each do |key|
+      opts[:override][key.to_sym] = conf["override"][key] if conf["override"][key]
+    end
   end
 
   opt_runs = get_runs_from_options(opts)
@@ -310,7 +311,9 @@ def run_benchmark(orig_opts)
 
   # Overrides *after* the normal options...
   if orig_opts[:override]
-    opts[:server_cmd] = orig_opts[:override][:server_cmd] if orig_opts[:override][:server_cmd]
+    KNOWN_OVERRIDE_KEYS.map(&:to_sym).each do |field|
+      opts[field] = orig_opts[:override][field] if orig_opts[:override][field]
+    end
   end
 
   begin
