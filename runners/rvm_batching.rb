@@ -218,10 +218,15 @@ config["configurations"].each do |conf|
     processes: conf["processes"] || 1,
     threads: conf["threads"] || 1,
     ruby: [conf["ruby"]].flatten(1),
-
   }
   check_legal_strings_in_array BenchLib::OptionsBuilder::APP_SERVERS, opts[:app_server], "Unexpected app server name(s)"
   check_legal_strings_in_array BenchLib::OptionsBuilder::FRAMEWORKS, opts[:framework], "Unexpected framework name(s)"
+
+  # Any overrides?
+  if conf["override"]
+    opts[:override] ||= {}
+    opts[:override][:server_cmd] = conf["override"]["server_cmd"] if conf["override"]["server_cmd"]
+  end
 
   opt_runs = get_runs_from_options(opts)
 
@@ -294,6 +299,11 @@ def run_benchmark(orig_opts)
 
   # Can't include this in the merge above or it'll overwrite Puma's extra_env
   opts[:extra_env]["RSB_RUN_INDEX"] = orig_opts[:batch_index]
+
+  # Overrides *after* the normal options...
+  if orig_opts[:override]
+    opts[:server_cmd] = orig_opts[:override][:server_cmd] if orig_opts[:override][:server_cmd]
+  end
 
   begin
     COUNTERS[:runs] += 1

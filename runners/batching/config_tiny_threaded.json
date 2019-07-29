@@ -1,0 +1,19 @@
+{
+    "runner": {
+        "#": "Version, if present, must be 1",
+        "version": 1
+    },
+    "configurations": [
+        {
+            "batches": 1,
+            "duration": 60,
+            "warmup": 15,
+            "ruby": ["2.0.0", "2.1.10", "2.2.10", "2.4.5", "2.5.3", "2.6.2"],
+            "framework": ["rack"],
+            "override": {
+              "server_cmd": "../tiny_servers/thread_server.rb"
+            },
+            "debug_server": true
+        }
+    ]
+}
