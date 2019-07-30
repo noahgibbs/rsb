@@ -578,7 +578,7 @@ UNICORN_CONFIG
         server_kill_matcher: "puma_rsb_rails_#{Process.pid}",
 
         extra_gems: [
-          [ "puma", "3.12.1"],
+          [ "puma", "3.11.4"],
         ],
       }
     end
@@ -599,7 +599,7 @@ UNICORN_CONFIG
         server_kill_matcher: "puma_rsb_rack_#{Process.pid}",
 
         extra_gems: [
-          [ "puma", "3.12.1"],
+          [ "puma", "3.11.4"],
         ],
       }
     end
