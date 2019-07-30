@@ -7,3 +7,5 @@ rails_test_app/passenger.*.pid*
 **/process_output.json
 rack_test_app/benchmark.log
 data/**/rsb_*.json
+*_test_app/Gemfile.dynamic
+*_test_app/Gemfile.dynamic.lock

@@ -96,6 +96,7 @@
 require_relative "../bench_lib"
 include BenchLib
 include BenchLib::OptionsBuilder
+include BenchLib::GemfileGenerator
 
 require "json"
 
@@ -146,7 +147,10 @@ KNOWN_RUNNER_KEYS = [
 KNOWN_CONFIG_KEYS = [
   "ruby", "framework", "batches", "duration", "warmup", "wrk", "url", "app_server",
   "processes", "threads", "debug_server", "close_connection", "rack_env", "extra_env",
-  "gemfile",
+  "gemfile", "override",
+]
+KNOWN_OVERRIDE_KEYS = [
+  "server_cmd", "server_pre_cmd", "server_kill_matcher", "server_kill_command", "port",
 ]
 
 if ARGV.size != 1
@@ -170,6 +174,9 @@ end
 
 config["configurations"].each_with_index do |conf, index|
   check_legal_keys_in_hash KNOWN_CONFIG_KEYS, conf, "Unknown field names in configuration \##{index}/#{num_configs}"
+  if conf["override"]
+    check_legal_keys_in_hash KNOWN_OVERRIDE_KEYS, conf["override"], "Unknown override key(s) in configuration \##{index}/#{num_configs}"
+  end
 end
 
 if config["runner"]["version"] && config["runner"]["version"] != 1
@@ -218,10 +225,17 @@ config["configurations"].each do |conf|
     processes: conf["processes"] || 1,
     threads: conf["threads"] || 1,
     ruby: [conf["ruby"]].flatten(1),
-
   }
   check_legal_strings_in_array BenchLib::OptionsBuilder::APP_SERVERS, opts[:app_server], "Unexpected app server name(s)"
   check_legal_strings_in_array BenchLib::OptionsBuilder::FRAMEWORKS, opts[:framework], "Unexpected framework name(s)"
+
+  # Any overrides?
+  if conf["override"]
+    opts[:override] ||= {}
+    KNOWN_OVERRIDE_KEYS.each do |key|
+      opts[:override][key.to_sym] = conf["override"][key] if conf["override"][key]
+    end
+  end
 
   opt_runs = get_runs_from_options(opts)
 
@@ -294,6 +308,13 @@ def run_benchmark(orig_opts)
 
   # Can't include this in the merge above or it'll overwrite Puma's extra_env
   opts[:extra_env]["RSB_RUN_INDEX"] = orig_opts[:batch_index]
+
+  # Overrides *after* the normal options...
+  if orig_opts[:override]
+    KNOWN_OVERRIDE_KEYS.map(&:to_sym).each do |field|
+      opts[field] = orig_opts[:override][field] if orig_opts[:override][field]
+    end
+  end
 
   begin
     COUNTERS[:runs] += 1
