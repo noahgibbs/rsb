@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-# Code from: https://www.codeotaku.com/journal/2018-11/fibers-are-the-right-solution/index
+# Code based on: https://www.codeotaku.com/journal/2018-11/fibers-are-the-right-solution/index
 
 require 'socket'
 require 'fiber'
@@ -8,8 +8,9 @@ require 'fiber'
 RESPONSE_TEXT = <<RESP.freeze
 HTTP/1.1 200 OK
 Content-Type: text/html
+Content-Length: 3
 
-Yes, we are OK
+OK
 RESP
 
 # The full implementation is given here, in order to show all the parts. A simpler implementation is given below.
@@ -33,14 +34,12 @@ class Reactor
         end
     end
 
-
     def wait_readable(io)
         @readable[io] = Fiber.current
         Fiber.yield
         @readable.delete(io)
 
         return yield if block_given?
-
     end
 
     def wait_writable(io)
@@ -51,7 +50,6 @@ class Reactor
         @writable.delete(io)
 
         return yield if block_given?
-
     end
 end
 
@@ -61,13 +59,17 @@ reactor = Reactor.new
 Fiber.new do
     loop do
         client = reactor.wait_readable(server) {server.accept}
+        responded = false
 
         Fiber.new do
             while buffer = reactor.wait_readable(client) {client.gets}
 
             reactor.wait_writable(client)
 
-            client.puts(RESPONSE_TEXT)
+            unless responded
+                client.puts(RESPONSE_TEXT)
+                responded = true
+            end
         end
 
         client.close

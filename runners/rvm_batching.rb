@@ -150,7 +150,7 @@ KNOWN_CONFIG_KEYS = [
   "gemfile", "override",
 ]
 KNOWN_OVERRIDE_KEYS = [
-  "server_cmd", "port",
+  "server_cmd", "server_pre_cmd", "server_kill_matcher", "server_kill_command", "port",
 ]
 
 if ARGV.size != 1

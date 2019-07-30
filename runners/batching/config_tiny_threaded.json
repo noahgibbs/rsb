@@ -13,7 +13,8 @@
             "framework": ["rack"],
             "override": {
               "server_cmd": "../tiny_servers/thread_server.rb",
-              "port": 9292
+              "server_kill_matcher": "../tiny_servers/thread_server.rb",
+              "port": 9090
             },
             "debug_server": true
         }
