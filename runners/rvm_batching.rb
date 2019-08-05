@@ -147,7 +147,7 @@ KNOWN_RUNNER_KEYS = [
 KNOWN_CONFIG_KEYS = [
   "ruby", "framework", "batches", "duration", "warmup", "wrk", "url", "app_server",
   "processes", "threads", "debug_server", "close_connection", "rack_env", "extra_env",
-  "gemfile", "override",
+  "gemfile", "override", "bundler_version",
 ]
 KNOWN_OVERRIDE_KEYS = [
   "server_cmd", "server_pre_cmd", "server_kill_matcher", "server_kill_command", "port",
