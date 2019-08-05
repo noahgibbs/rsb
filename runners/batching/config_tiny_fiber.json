@@ -11,6 +11,7 @@
             "#ruby": ["2.0.0", "2.1.10", "2.2.10", "2.3.4", "2.4.5", "2.5.3", "2.6.2"],
             "ruby": ["2.1.10", "2.6.2"],
             "framework": ["rack"],
+            "bundler_version": "1.17.3",
             "override": {
               "server_cmd": "../tiny_servers/fiber_server.rb",
               "server_kill_matcher": "../tiny_servers/fiber_server.rb",
