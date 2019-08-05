@@ -726,6 +726,7 @@ GEMFILE
 
       return <<GEMFILE
 ruby "2.5.0"
+#{extra_gems}
 
 eval_gemfile "Gemfile.common"
 GEMFILE
