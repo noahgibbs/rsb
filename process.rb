@@ -209,7 +209,9 @@ req_time_by_cohort.keys.sort.each do |cohort|
     print "  #{"%2d" % p}%ile: #{percentile(rates, p)}\n"
   end
   variance = array_variance(rates)
-  print "  Mean: #{array_mean(rates).inspect} Median: #{percentile(rates, 50).inspect} Variance: #{variance.inspect} StdDev: #{Math.sqrt(variance).inspect}\n"
+  std_dev = variance.nil? ? nil : Math.sqrt(variance)
+  STDERR.puts "Variance: #{variance.inspect}"
+  print "  Mean: #{array_mean(rates).inspect} Median: #{percentile(rates, 50).inspect} Variance: #{variance.inspect} StdDev: #{std_dev.inspect}\n"
   process_output[:processed][:cohort][cohort][:rate_mean] = array_mean(rates)
   process_output[:processed][:cohort][cohort][:rate_median] = percentile(rates, 50)
   process_output[:processed][:cohort][cohort][:rate_variance] = array_variance(rates)
