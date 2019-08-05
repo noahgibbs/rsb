@@ -267,9 +267,12 @@ def run_benchmark(orig_opts)
   bundle_gemfile = nil
   case orig_opts[:gemfile]
   when NilClass, "dynamic"
-    # Write out Gemfile.dynamic
+    # Write out Gemfile.dynamic and Gemfile.dynamic.lock
     File.open("#{bench_dir}/Gemfile.dynamic", "w") do |f|
       f.write(gemfile_contents(orig_opts[:ruby], :cruby, orig_opts[:framework], extra_gems))
+    end
+    File.open("#{bench_dir}/Gemfile.dynamic.lock", "w") do |f|
+      f.write(gemfile_lock_contents(orig_opts[:ruby], :cruby, orig_opts[:framework], extra_gems))
     end
     bundle_gemfile = "Gemfile.dynamic"
   when String
