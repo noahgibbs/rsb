@@ -728,11 +728,11 @@ UNICORN_CONFIG
     RUBY_TYPES = [ :cruby, :jruby, :truffleruby ]
 
     def gemfile_contents(ruby_version, ruby_type, framework, extras)
-      send("#{ruby_type}_#{framework}_gemfile_contents", ruby_version, extras: extras)
+      send("#{ruby_type}_#{framework}_gemfile_contents", ruby_version, extras)
     end
 
     def gemfile_lock_contents(ruby_version, ruby_type, framework, extra_gems)
-      send("#{ruby_type}_#{framework}_gemfile_lock_contents", ruby_version, extra_gems: extra_gems)
+      send("#{ruby_type}_#{framework}_gemfile_lock_contents", ruby_version, extra_gems)
     end
 
     def parse_cruby_version(cruby_version)
@@ -752,7 +752,7 @@ UNICORN_CONFIG
       [ major, minor, micro, patch, pre ]
     end
 
-    def cruby_rails_gemfile_contents(ruby_version, extras: [])
+    def cruby_rails_gemfile_contents(ruby_version, extras = [])
       major, minor, micro, _ = parse_cruby_version(ruby_version)
       extra_gems = ""
       extra_gems += 'gem "psych", "= 2.2.4"' + "\n" if minor == 0
@@ -789,7 +789,7 @@ GEMFILE
       raise "No TruffleRuby support (yet)"
     end
 
-    def cruby_rails_gemfile_lock_contents(ruby_version, extra_gems: [])
+    def cruby_rails_gemfile_lock_contents(ruby_version, extra_gems = [])
       major, minor, micro, patch, _ = parse_cruby_version ruby_version
 
       extra_deps  = ""
@@ -983,7 +983,7 @@ BUNDLED WITH
 GEMFILE_LOCK
     end
 
-    def cruby_rack_gemfile_lock_contents(ruby_version, extra_gems:)
+    def cruby_rack_gemfile_lock_contents(ruby_version, extra_gems)
       major, minor, micro, patch = parse_cruby_version ruby_version
 
       extra_deps = ""
