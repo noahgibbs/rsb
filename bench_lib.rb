@@ -676,6 +676,53 @@ UNICORN_CONFIG
     outer.flat_map { |item| smaller.map { |rest| [ item ] + rest } }
   end
 
+  def all_hash_key_paths(h)
+    paths = []
+
+    h.each do |k, v|
+      if v.is_a?(Hash)
+        subpaths = all_hash_key_paths(v)
+        paths += subpaths.map { |p| [k, *p] }
+      else
+        paths << [k]
+      end
+    end
+
+    paths
+  end
+
+  # This takes a hash which may contain other hashes. Any value
+  # that is an array is considered to be a list of choices.
+  # This method will return a list of hashes where each
+  # hash is one possible set of choices represented by the
+  # top hash.
+  def multiset_from_nested_combinations(top_hash)
+    alternatives = []
+    paths = all_hash_key_paths(top_hash)
+
+    paths.each do |path|
+      val = path.inject(top_hash) { |h, k| h[k] }
+      if val.is_a?(Array)
+        alternatives.push({ path: path, val: val })
+      else
+        alternatives.push({ path: path, val: [val] })
+      end
+    end
+
+    all_choices = combination_set(alternatives.map { |a| a[:val] })
+    all_multi = all_choices.map do |one_choice|
+      merged_item = {}
+      alternatives.each_with_index do |item, idx|
+        this_choice = one_choice[idx]
+        val_parent = item[:path][0..-2].inject(merged_item) { |h, k| h[k] ||= {}; h[k] }
+        val_parent[item[:path][-1]] = this_choice
+      end
+      merged_item
+    end
+
+    all_multi
+  end
+
   module GemfileGenerator
     # This list is a bit optimistic
     RUBY_TYPES = [ :cruby, :jruby, :truffleruby ]

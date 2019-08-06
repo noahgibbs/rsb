@@ -127,23 +127,17 @@ end
 # Overrides are unusual in being a two-deep hash instead of
 # a one-deep hash, so they wind up being handled separately.
 def get_runs_from_options(opts)
-  keys = opts.keys - [:batches] # Batches does a different, hardcoded thing
-  multi_keys = keys.select { |k| opts[k].is_a?(Array) }
-  override_multi_keys = opts[:overrides].keys.select { |k| opts[:overrides][k].is_a?(Array) }
-  ps_multi = combination_set(multi_keys.map { |mk| opts[mk] } + override_multi_keys.map { |omk| opts[:overrides][omk] })
+  batches = opts.delete(:batches)
+  combos = multiset_from_nested_combinations(opts)
 
-  (1..opts[:batches]).flat_map do |batch_idx|
-    ps_multi.flat_map do |opts_chosen|
-      chosen_hash = {}
-      multi_keys.each_with_index { |k, idx| chosen_hash[k] = opts_chosen[idx] }
-
-      reg_opts = opts.merge(chosen_hash).merge(:batch_index => batch_idx)
-      override_multi_keys.each_with_index do |ok, index|
-        reg_opts[:overrides][ok] = opts_chosen[idx + multi_keys.size]
-      end
-      reg_opts
+  runs = (1..batches).flat_map do |batch_idx|
+    combos.map do |combo|
+      combo[:batch_idx] = batch_idx
+      combo
     end
   end
+
+  runs
 end
 
 KNOWN_TOPLEVEL_KEYS = [
