@@ -731,6 +731,10 @@ UNICORN_CONFIG
       send("#{ruby_type}_#{framework}_gemfile_contents", ruby_version, extras: extras)
     end
 
+    def gemfile_lock_contents(ruby_version, ruby_type, framework, extra_gems)
+      send("#{ruby_type}_#{framework}_gemfile_lock_contents", ruby_version, extra_gems: extra_gems)
+    end
+
     def parse_cruby_version(cruby_version)
       raise "No support for CRuby major versions other than 2!" if cruby_version[0..1] != "2."
 
@@ -797,7 +801,7 @@ GEMFILE
       extra_gems.each do |row|
         g, ver, constraint = *row
         constraint ||= "= #{ver}"  # No constraint? List it as exact version
-        extra_specs += "    #{g} (#{ver})"
+        extra_specs += "    #{g} (#{ver})\n"
         extra_deps += "  #{g} (#{constraint})\n"
       end
 
@@ -969,6 +973,7 @@ DEPENDENCIES
   turbolinks (= 2.5.4)
   uglifier (>= 1.3.0)
   web-console (~> 2.0)
+#{extra_deps}
 
 RUBY VERSION
    ruby #{major}.#{minor}.#{micro}#{patch}
@@ -978,14 +983,20 @@ BUNDLED WITH
 GEMFILE_LOCK
     end
 
-    def cruby_rack_gemfile_lock_contents(ruby_version)
-      major, minor, micro, _ = parse_cruby_version ruby_version
+    def cruby_rack_gemfile_lock_contents(ruby_version, extra_gems:)
+      major, minor, micro, patch = parse_cruby_version ruby_version
 
       extra_deps = ""
       extra_specs = ""
       if minor == 0
         extra_deps  += "    psych (2.2.4)\n"
         extra_specs += "  psych (= 2.2.4)\n"
+      end
+      extra_gems.each do |row|
+        g, ver, constraint = *row
+        constraint ||= "= #{ver}"  # No constraint? List it as exact version
+        extra_specs += "    #{g} (#{ver})\n"
+        extra_deps += "  #{g} (#{constraint})\n"
       end
 
       return <<GEMFILE_LOCK
