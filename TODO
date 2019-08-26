@@ -7,6 +7,7 @@
 
 ## Features We Could Really Use
 
+* Mode in rvm_batching runner to install Rubies and/or Bundler
 * Go through other app servers, get list of gem dependencies, include
   in BenchLib
 * Packer build for image: preinstall gems on all Ruby versions
