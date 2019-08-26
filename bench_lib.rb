@@ -676,12 +676,63 @@ UNICORN_CONFIG
     outer.flat_map { |item| smaller.map { |rest| [ item ] + rest } }
   end
 
+  def all_hash_key_paths(h)
+    paths = []
+
+    h.each do |k, v|
+      if v.is_a?(Hash)
+        subpaths = all_hash_key_paths(v)
+        paths += subpaths.map { |p| [k, *p] }
+      else
+        paths << [k]
+      end
+    end
+
+    paths
+  end
+
+  # This takes a hash which may contain other hashes. Any value
+  # that is an array is considered to be a list of choices.
+  # This method will return a list of hashes where each
+  # hash is one possible set of choices represented by the
+  # top hash.
+  def multiset_from_nested_combinations(top_hash)
+    alternatives = []
+    paths = all_hash_key_paths(top_hash)
+
+    paths.each do |path|
+      val = path.inject(top_hash) { |h, k| h[k] }
+      if val.is_a?(Array)
+        alternatives.push({ path: path, val: val })
+      else
+        alternatives.push({ path: path, val: [val] })
+      end
+    end
+
+    all_choices = combination_set(alternatives.map { |a| a[:val] })
+    all_multi = all_choices.map do |one_choice|
+      merged_item = {}
+      alternatives.each_with_index do |item, idx|
+        this_choice = one_choice[idx]
+        val_parent = item[:path][0..-2].inject(merged_item) { |h, k| h[k] ||= {}; h[k] }
+        val_parent[item[:path][-1]] = this_choice
+      end
+      merged_item
+    end
+
+    all_multi
+  end
+
   module GemfileGenerator
     # This list is a bit optimistic
     RUBY_TYPES = [ :cruby, :jruby, :truffleruby ]
 
     def gemfile_contents(ruby_version, ruby_type, framework, extras)
-      send("#{ruby_type}_#{framework}_gemfile_contents", ruby_version, extras: extras)
+      send("#{ruby_type}_#{framework}_gemfile_contents", ruby_version, extras)
+    end
+
+    def gemfile_lock_contents(ruby_version, ruby_type, framework, extra_gems)
+      send("#{ruby_type}_#{framework}_gemfile_lock_contents", ruby_version, extra_gems)
     end
 
     def parse_cruby_version(cruby_version)
@@ -701,7 +752,7 @@ UNICORN_CONFIG
       [ major, minor, micro, patch, pre ]
     end
 
-    def cruby_rails_gemfile_contents(ruby_version, extras: [])
+    def cruby_rails_gemfile_contents(ruby_version, extras = [])
       major, minor, micro, _ = parse_cruby_version(ruby_version)
       extra_gems = ""
       extra_gems += 'gem "psych", "= 2.2.4"' + "\n" if minor == 0
@@ -738,7 +789,7 @@ GEMFILE
       raise "No TruffleRuby support (yet)"
     end
 
-    def cruby_rails_gemfile_lock_contents(ruby_version, extra_gems: [])
+    def cruby_rails_gemfile_lock_contents(ruby_version, extra_gems = [])
       major, minor, micro, patch, _ = parse_cruby_version ruby_version
 
       extra_deps  = ""
@@ -750,7 +801,7 @@ GEMFILE
       extra_gems.each do |row|
         g, ver, constraint = *row
         constraint ||= "= #{ver}"  # No constraint? List it as exact version
-        extra_specs += "    #{g} (#{ver})"
+        extra_specs += "    #{g} (#{ver})\n"
         extra_deps += "  #{g} (#{constraint})\n"
       end
 
@@ -922,6 +973,7 @@ DEPENDENCIES
   turbolinks (= 2.5.4)
   uglifier (>= 1.3.0)
   web-console (~> 2.0)
+#{extra_deps}
 
 RUBY VERSION
    ruby #{major}.#{minor}.#{micro}#{patch}
@@ -931,14 +983,20 @@ BUNDLED WITH
 GEMFILE_LOCK
     end
 
-    def cruby_rack_gemfile_lock_contents(ruby_version)
-      major, minor, micro, _ = parse_cruby_version ruby_version
+    def cruby_rack_gemfile_lock_contents(ruby_version, extra_gems)
+      major, minor, micro, patch = parse_cruby_version ruby_version
 
       extra_deps = ""
       extra_specs = ""
       if minor == 0
         extra_deps  += "    psych (2.2.4)\n"
         extra_specs += "  psych (= 2.2.4)\n"
+      end
+      extra_gems.each do |row|
+        g, ver, constraint = *row
+        constraint ||= "= #{ver}"  # No constraint? List it as exact version
+        extra_specs += "    #{g} (#{ver})\n"
+        extra_deps += "  #{g} (#{constraint})\n"
       end
 
       return <<GEMFILE_LOCK
