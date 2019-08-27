@@ -18,15 +18,7 @@ loop do
     client = server.accept
 
     Thread.new do
-        returned = false
-
-        while buffer = client.gets
-            unless returned
-                client.puts(RESPONSE_TEXT)
-                returned = true
-            end
-        end
-
+        client.puts RESPONSE_TEXT
         client.close
     end
 end
