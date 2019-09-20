@@ -28,7 +28,8 @@ module BenchLib
 
       # Runner Config
       before_worker_cmd: "bundle install",
-      ruby_subprocess_cmd: "bash -l -c \"BEFORE_WORKER && ruby SUBPROCESS_SCRIPT JSON_FILENAME\"",
+      ruby_subprocess_cmd: "BEFORE_WORKER && ruby SUBPROCESS_SCRIPT JSON_FILENAME",
+      wrap_subprocess_cmd: "COMMAND",
       json_filename: "/tmp/benchlib_#{Process.pid}.json",
       wrk_subprocess: File.expand_path(File.join(__dir__, "wrk_subprocess.rb")),
 
@@ -242,6 +243,8 @@ module BenchLib
         @settings[opt].gsub! "JSON_FILENAME", @settings[:json_filename]
         @settings[opt].gsub! "SUBPROCESS_SCRIPT", @settings[:wrk_subprocess]
       end
+
+      @settings[:ruby_subprocess_cmd] = @settings[:wrap_subprocess_cmd].sub('COMMAND', @settings[:ruby_subprocess_cmd])
     end
 
     # Output files are particularly liable to have TIMESTAMP substituted in
