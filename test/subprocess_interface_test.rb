@@ -21,7 +21,7 @@ class TestSubprocess < Minitest::Test
       server_cmd: "echo server",
       server_pre_cmd: "echo pre-server",
       server_kill_command: "echo killing server",
-      no_check_url: true,
+      check_url: false,
 
       wrk_concurrency: 3,
       wrk_connections: 4,
