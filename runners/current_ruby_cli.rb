@@ -26,6 +26,7 @@ HELP
 
   defaults.each_pair do |name, default_value|
     type = default_value == nil ? String : default_value.class
+    type = Integer if type < Integer # For Ruby < 2.4
     optname = name.to_s.tr('_', '-')
     if type == Hash
       # skip

@@ -1,0 +1,20 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    psych (2.2.4)
+    rack (1.6.11)
+    rake (12.3.3)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  psych (= 2.2.4)
+  rack (~> 1.6)
+  rake
+
+RUBY VERSION
+   ruby 2.0.0p648
+
+BUNDLED WITH
+   1.17.3
