@@ -1,0 +1,25 @@
+language: ruby
+rvm:
+  - 2.0.0
+  - 2.6.3
+cache:
+  bundler: true
+  directories:
+    - wrk
+before_install:
+  - test -d wrk/.git || git clone https://github.com/wg/wrk.git
+  - test -f wrk/wrk || make -C wrk
+  - export PATH="$PWD/wrk:$PATH"
+install:
+  - bundle install
+env:
+  - NOKOGIRI_USE_SYSTEM_LIBRARIES=true
+script:
+  # Unit tests
+  - bundle exec ruby test/bench_lib_test.rb
+  - bundle exec ruby test/subprocess_interface_test.rb
+  # Test that the current_ruby_cli.rb runner works and can run benchmarks
+  - runners/current_ruby_cli.rb -h
+  - runners/current_ruby_cli.rb --benchmark-seconds 5 rack webrick
+  - runners/current_ruby_cli.rb --benchmark-seconds 5 rails webrick
+  - ./process.rb -c RUBY_DESCRIPTION,server_cmd,timestamp -i 'data/rsb_*.json'
