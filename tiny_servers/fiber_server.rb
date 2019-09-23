@@ -62,19 +62,12 @@ Fiber.new do
         responded = false
 
         Fiber.new do
-            while buffer = reactor.wait_readable(client) {client.gets}
+            buffer = reactor.wait_readable(client) {client.gets}
 
-            reactor.wait_writable(client)
-
-            unless responded
-                client.puts(RESPONSE_TEXT)
-                responded = true
-            end
+            reactor.wait_writable(client) { client.puts RESPONSE_TEXT }
         end
 
         client.close
-    end.resume
-
     end
 end.resume
 
