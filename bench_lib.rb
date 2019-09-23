@@ -53,7 +53,7 @@ module BenchLib
       server_kill_command: nil,  # This is a command which, if run, should kill the server - only use *one* of kill command or kill matcher
       server_kill_matcher: nil,  # This is a string which, if matched, means "kill this process when killing server" - only use *one* of kill command or kill matcher
       suppress_server_output: true,
-      no_check_url: false,  # Don't check that the server actually opens/closes the appropriate PORT number
+      check_url: true,  # Check that the server actually opens/closes the appropriate PORT number
   }
 
   # Checked system - error if the command fails
@@ -96,7 +96,7 @@ module BenchLib
   class ServerEnvironment
     def initialize(server_start_cmd = "rackup", server_ruby_opts: nil, server_pre_cmd: "echo Skipping", server_kill_substring: "rackup",
           server_kill_command: nil, self_name: "ab_bench", url: "http://localhost:3000", suppress_server_output: true,
-          no_check_url: false)
+          check_url: true)
       @server_start_cmd = server_start_cmd
       @server_ruby_opts = server_ruby_opts
       @server_pre_cmd = server_pre_cmd
@@ -108,7 +108,7 @@ module BenchLib
       end
       @url = url
       @suppress_server_output = suppress_server_output
-      @no_check_url = no_check_url
+      @check_url = check_url
     end
 
     # Note: this only makes sense if we received @server_kill_substring, not @server_kill_command
@@ -176,7 +176,7 @@ module BenchLib
     end
 
     def ensure_url_available
-      return true if @no_check_url
+      return true unless @check_url
       400.times do |i|
         return true if url_available?
         sleep 0.3
@@ -360,14 +360,14 @@ module BenchLib
                                          self_name: "wrk_bench",
                                          url: @settings[:url],
                                          suppress_server_output: @settings[:suppress_server_output],
-                                         no_check_url: @settings[:no_check_url]
+                                         check_url: @settings[:check_url]
 
       # If we know how to make sure the server isn't running, do that.
       if @settings[:server_kill_matcher]
         server_env.server_cleanup
       end
 
-      if !@settings[:no_check_url] && server_env.url_available?
+      if @settings[:check_url] && server_env.url_available?
         raise "URL #{@settings[:url].inspect} should not be available before the server runs!"
       end
 
@@ -393,7 +393,7 @@ module BenchLib
         wrk_command.call(:benchmark)
       end
 
-      if !@settings[:no_check_url] && server_env.url_available?
+      if @settings[:check_url] && server_env.url_available?
         raise "URL #{@settings[:url].inspect} should not be available after the kill command (#{@settings[:server_kill_matcher].inspect})!"
       end
 
