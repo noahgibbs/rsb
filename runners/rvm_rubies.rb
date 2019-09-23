@@ -119,7 +119,7 @@ def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
 
     :verbose => 1,
 
-    before_worker_cmd: "rvm use #{rvm_ruby_version} && #{SETTINGS_DEFAULTS[:before_worker_cmd]}",  # Run before each batch
+    wrap_subprocess_cmd: "bash -l -c \"rvm use #{rvm_ruby_version} && COMMAND\"",
     bundle_gemfile: "Gemfile.#{rvm_ruby_version}",
 
     # Useful for debugging, annoying for day-to-day use

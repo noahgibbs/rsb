@@ -301,7 +301,7 @@ def run_benchmark(orig_opts)
 
     :verbose => 1,
 
-    before_worker_cmd: "rvm use #{orig_opts[:ruby]} && #{SETTINGS_DEFAULTS[:before_worker_cmd]}",  # Run before each batch
+    wrap_subprocess_cmd: "bash -l -c \"rvm use #{orig_opts[:ruby]} && COMMAND\"",
     bundle_gemfile: bundle_gemfile,
     rack_env: orig_opts[:rack_env],
 
