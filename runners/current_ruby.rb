@@ -1,15 +1,13 @@
 #!/usr/bin/env ruby
 
-# This is both an example of a Ruby-based runner, and a way to run the benchmark for all the
-# current "blessed" test Rubies - one per minor version of Ruby starting with 2.0.0, plus 2.0.0p0 itself
-# as the baseline.
-
-# For this, I just provide a set of options in Ruby instead of trying to use the command line to set up the
-# quite large configuration.
+# This is both an example of a Ruby-based runner, and a way to run the benchmark for supported
+# Rubies. You may need to create a Gemfile.lock if you want something specific for your
+# chosen Ruby.
 
 require_relative "../bench_lib"
 include BenchLib
 include BenchLib::OptionsBuilder
+include BenchLib::GemfileGenerator
 
 which_app = :rails  # Can also be :rack
 server = :webrick   # Can also be :puma, :unicorn, :thin, :passenger
@@ -29,15 +27,28 @@ opts = {
   url: "http://127.0.0.1:PORT/static",
 
   bundler_version: nil, # "1.17.3",
-  bundle_gemfile: "Gemfile.#{ruby_version}",
+  bundle_gemfile: nil, # Or: "Gemfile.#{ruby_version}",
   verbose: 1,
 }
 
-# Default concurrency
-opts = options_by_framework_and_server(which_app, server).merge(opts)
-extra_gems = rr_opts.delete(:extra_gems) || [] # Can be used for dynamic Gemfile generation
+bench_dir = "#{which_app}_test_app"
 
-# Here's the meat of how to turn those options into benchmark output
-Dir.chdir("#{which_app}_test_app") do
+# Default concurrency
+rr_opts = options_by_framework_and_server(which_app, server).merge(opts)
+extra_gems = rr_opts.delete(:extra_gems) || []
+
+# Dynamic gemfile generation
+if opts[:bundle_gemfile].nil? || opts[:bundle_gemfile] == "Gemfile.dynamic"
+  File.open("#{bench_dir}/Gemfile.dynamic", "w") do |f|
+    f.write(gemfile_contents(ruby_version, :cruby, which_app, extra_gems))
+  end
+  File.open("#{bench_dir}/Gemfile.dynamic.lock", "w") do |f|
+    f.write(gemfile_lock_contents(ruby_version, :cruby, which_app, extra_gems))
+  end
+  bundle_gemfile = "Gemfile.dynamic"
+end
+
+# Finally, run the benchmark
+Dir.chdir(bench_dir) do
   BenchmarkEnvironment.new(opts).run_wrk
 end
