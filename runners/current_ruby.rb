@@ -46,7 +46,9 @@ if opts[:bundle_gemfile].nil? || opts[:bundle_gemfile] == "Gemfile.dynamic"
   File.open("#{bench_dir}/Gemfile.dynamic.lock", "w") do |f|
     f.write(gemfile_lock_contents(ruby_version, :cruby, which_app, extra_gems))
   end
-  bundle_gemfile = "Gemfile.dynamic"
+  rr_opts[:bundle_gemfile] = "Gemfile.dynamic" # Have to be able to find Gemfile.dynamic.lock
+else
+  rr_opts[:bundle_gemfile] = "#{bench_dir}/#{opts[:bundle_gemfile]}"
 end
 
 # Finally, run the benchmark
