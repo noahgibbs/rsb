@@ -29,6 +29,7 @@ opts = {
   bundler_version: nil, # "1.17.3",
   bundle_gemfile: nil, # Or: "Gemfile.#{ruby_version}",
   verbose: 1,
+  suppress_server_output: true,  # Set to false to show server output on console
 }
 
 bench_dir = "#{which_app}_test_app"
