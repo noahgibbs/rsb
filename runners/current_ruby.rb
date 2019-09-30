@@ -50,5 +50,5 @@ end
 
 # Finally, run the benchmark
 Dir.chdir(bench_dir) do
-  BenchmarkEnvironment.new(opts).run_wrk
+  BenchmarkEnvironment.new(rr_opts).run_wrk
 end
