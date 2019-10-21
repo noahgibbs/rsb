@@ -8,11 +8,11 @@ require 'optparse'
 require_relative "../bench_lib"
 include BenchLib
 include BenchLib::OptionsBuilder
+include BenchLib::GemfileGenerator
 
 overrides = {
   wrk_close_connection: true,
   url: "http://127.0.0.1:PORT/static",
-  bundle_gemfile: "Gemfile.#{RUBY_VERSION}",
   suppress_server_output: false,
 }
 defaults = BenchLib::SETTINGS_DEFAULTS.merge(overrides)
@@ -54,7 +54,7 @@ p options
 
 # Default concurrency
 options = options_by_framework_and_server(which_app, server).merge(options)
-extra_gems = options.delete(:extra_gems) || [] # Can be used for dynamic Gemfile generation
+setup_gemfile(RUBY_VERSION, which_app, options)
 
 # Here's the meat of how to turn those options into benchmark output
 Dir.chdir("#{which_app}_test_app") do

@@ -731,6 +731,31 @@ UNICORN_CONFIG
     # This list is a bit optimistic
     RUBY_TYPES = [ :cruby, :jruby, :truffleruby ]
 
+    def setup_gemfile(ruby_version, app, opts)
+      bench_dir = "#{app}_test_app"
+      extra_gems = opts.delete(:extra_gems) || []
+
+      case opts[:bundle_gemfile]
+      when nil, "dynamic", "Gemfile.dynamic"
+        # Write out Gemfile.dynamic and Gemfile.dynamic.lock
+        File.open("#{bench_dir}/Gemfile.dynamic", "w") do |f|
+          f.write(gemfile_contents(ruby_version, :cruby, app, extra_gems))
+        end
+        File.open("#{bench_dir}/Gemfile.dynamic.lock", "w") do |f|
+          f.write(gemfile_lock_contents(ruby_version, :cruby, app, extra_gems))
+        end
+        opts[:bundle_gemfile] = "Gemfile.dynamic"
+      when String
+        bundle_gemfile = "#{bench_dir}/#{opts[:bundle_gemfile]}"
+        unless File.exist?(bundle_gemfile)
+          raise "Supplied Gemfile path does not exist for this framework: #{bundle_gemfile.inspect}!"
+        end
+        opts[:bundle_gemfile] = bundle_gemfile
+      else
+        raise "Unrecognized value for :bundle_gemfile option: #{opts[:bundle_gemfile].inspect}!"
+      end
+    end
+
     def gemfile_contents(ruby_version, ruby_type, framework, extras)
       send("#{ruby_type}_#{framework}_gemfile_contents", ruby_version, extras)
     end

@@ -36,20 +36,7 @@ bench_dir = "#{which_app}_test_app"
 
 # Default concurrency
 rr_opts = options_by_framework_and_server(which_app, server).merge(opts)
-extra_gems = rr_opts.delete(:extra_gems) || []
-
-# Dynamic gemfile generation
-if opts[:bundle_gemfile].nil? || opts[:bundle_gemfile] == "Gemfile.dynamic"
-  File.open("#{bench_dir}/Gemfile.dynamic", "w") do |f|
-    f.write(gemfile_contents(ruby_version, :cruby, which_app, extra_gems))
-  end
-  File.open("#{bench_dir}/Gemfile.dynamic.lock", "w") do |f|
-    f.write(gemfile_lock_contents(ruby_version, :cruby, which_app, extra_gems))
-  end
-  rr_opts[:bundle_gemfile] = "Gemfile.dynamic" # Have to be able to find Gemfile.dynamic.lock
-else
-  rr_opts[:bundle_gemfile] = "#{bench_dir}/#{opts[:bundle_gemfile]}"
-end
+setup_gemfile(ruby_version, which_app, rr_opts)
 
 # Finally, run the benchmark
 Dir.chdir(bench_dir) do

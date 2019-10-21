@@ -22,4 +22,6 @@ script:
   - runners/current_ruby_cli.rb -h
   - runners/current_ruby_cli.rb --benchmark-seconds 5 rack webrick
   - runners/current_ruby_cli.rb --benchmark-seconds 5 rails webrick
+  - runners/current_ruby_cli.rb --benchmark-seconds 5 rack puma
+  - runners/current_ruby_cli.rb --benchmark-seconds 5 rails puma
   - ./process.rb -c RUBY_DESCRIPTION,server_cmd,timestamp -i 'data/rsb_*.json'
