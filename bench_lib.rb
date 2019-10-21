@@ -431,11 +431,12 @@ module BenchLib
       send(method_name, processes: processes, threads: threads)
     end
 
-    # This generates a temporary configuration file, using the Tmpfile API, which can
+    # This generates a temporary configuration file, using the Tempfile API, which can
     # be used for an application server like Unicorn that may require its configuration
     # be from a file.
     def temp_config_file(contents)
-      t = Tmpfile.new("RSB_config_#{Process.pid}_")
+      require 'tempfile'
+      t = Tempfile.new("RSB_config_#{Process.pid}_")
       t.to_s
     end
 
