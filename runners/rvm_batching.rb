@@ -262,29 +262,7 @@ COUNTERS = {
 def run_benchmark(orig_opts)
   extra_env = orig_opts.delete(:extra_env) || {}  # Have to merge after getting app_server env vars
   rr_opts = options_by_framework_and_server(orig_opts[:framework], orig_opts[:app_server], processes: orig_opts[:processes], threads: orig_opts[:threads])
-  extra_gems = rr_opts.delete(:extra_gems) || []
-
-  bench_dir = "#{orig_opts[:framework]}_test_app"
-
-  bundle_gemfile = nil
-  case orig_opts[:gemfile]
-  when NilClass, "dynamic"
-    # Write out Gemfile.dynamic and Gemfile.dynamic.lock
-    File.open("#{bench_dir}/Gemfile.dynamic", "w") do |f|
-      f.write(gemfile_contents(orig_opts[:ruby], :cruby, orig_opts[:framework], extra_gems))
-    end
-    File.open("#{bench_dir}/Gemfile.dynamic.lock", "w") do |f|
-      f.write(gemfile_lock_contents(orig_opts[:ruby], :cruby, orig_opts[:framework], extra_gems))
-    end
-    bundle_gemfile = "Gemfile.dynamic"
-  when String
-    bundle_gemfile = "#{bench_dir}/#{orig_opts[:gemfile]}"
-    unless File.exist?(bundle_gemfile)
-      raise "Supplied Gemfile path does not exist for this framework: #{bundle_gemfile.inspect}!"
-    end
-  else
-    raise "Unrecognized value for \"gemfile\" option: #{orig_opts[:gemfile].inspect}!"
-  end
+  setup_gemfile(orig_opts[:ruby], orig_opts[:framework], orig_opts)
 
   opts = rr_opts.merge({
     # Wrk settings
@@ -325,7 +303,7 @@ def run_benchmark(orig_opts)
     COUNTERS[:runs] += 1
     env = nil # Set scope for this local
 
-    Dir.chdir(bench_dir) do
+    Dir.chdir("#{orig_opts[:framework]}_test_app") do
       print "Benchmarking Options:\n#{JSON.pretty_generate(opts)}\n\n"
       env = BenchmarkEnvironment.new opts
       env.run_wrk
