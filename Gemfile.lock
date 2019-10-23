@@ -1,7 +1,7 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    minitest (5.11.3)
+    minitest (5.12.2)
     psych (2.2.4)
 
 PLATFORMS
