@@ -1,5 +1,7 @@
 # Rails Simpler Bench
 
+[![Build Status](https://travis-ci.org/noahgibbs/rsb.svg?branch=master)](https://travis-ci.org/noahgibbs/rsb)
+
 Are you looking for a comprehensive, real-world benchmark to show the
 performance of a large, highly-concurrent Ruby on Rails application?
 You're probably looking for [Rails Ruby
