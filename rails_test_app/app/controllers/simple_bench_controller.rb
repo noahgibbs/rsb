@@ -30,4 +30,11 @@ class SimpleBenchController < ApplicationController
   def shutdown
     exit 0
   end
+
+  # If you have the get_process_mem gem available (currently commented out in Gemfile) then this
+  # will allow you to get the memory usage.
+  def process_mem
+    mem = GetProcessMem.new
+    render :text => "Process memory in bytes: #{mem.bytes}"
+  end
 end
