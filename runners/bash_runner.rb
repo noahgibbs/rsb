@@ -35,7 +35,7 @@ end
 commands = []
 RUBIES.each do |ruby|
   TESTS.each_with_index do |test, test_index|
-    invocation = "rvm use #{ruby} && export RUBY_RUNNER_TEST_INDEX=#{test_index} && #{test}"
+    invocation = "rvm use #{ruby} && export RSB_TEST_INDEX=#{test_index} && #{test}"
     commands.concat([invocation] * TIMES)
   end
 end

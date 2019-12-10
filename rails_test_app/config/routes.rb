@@ -4,12 +4,14 @@ Rails.application.routes.draw do
   get 'simple_bench/fivehundred'
   get 'simple_bench/delay'
   get 'simple_bench/mandelbrot'
+  get 'simple_bench/process_mem'
 
   get '/static' => 'simple_bench#static'
   get '/fivehundred' => 'simple_bench#fivehundred'
   get '/db' => 'simple_bench#db'
   get '/delay' => 'simple_bench#delay'
   get '/mandelbrot' => 'simple_bench#mandelbrot'
+  get '/process_mem' => 'simple_bench#process_mem'
 
   # The priority is based upon order of creation: first created -> highest priority.
   # See how all your routes lay out with "rake routes".

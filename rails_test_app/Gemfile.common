@@ -56,3 +56,5 @@ end
 group :profile do
   gem 'ruby-prof', platform: :mri
 end
+
+gem "get_process_mem"

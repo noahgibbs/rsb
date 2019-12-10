@@ -54,6 +54,8 @@ module BenchLib
       server_kill_matcher: nil,  # This is a string which, if matched, means "kill this process when killing server" - only use *one* of kill command or kill matcher
       suppress_server_output: true,
       check_url: true,  # Check that the server actually opens/closes the appropriate PORT number
+
+      get_final_mem: false,
   }
 
   # Checked system - error if the command fails
@@ -351,6 +353,7 @@ module BenchLib
     # This is run by the child process's wrk_subprocess.rb as a top-level method
     def subprocess_main
       output = capture_environment
+      output["mem"] = {}
 
       server_env = ServerEnvironment.new @settings[:server_cmd],
                                          server_ruby_opts: @settings[:server_ruby_opts],
@@ -391,6 +394,14 @@ module BenchLib
 
         verbose "Starting real benchmark iterations"
         wrk_command.call(:benchmark)
+
+        # For now this assumes a single-process configuration
+        if @settings[:get_final_mem]
+          u = URL(@settings[:url])
+          u.path = "/process_mem"
+          ret = system("curl #{u.to_s}", out: "#{mode}_output_mem_#{:timestamp}.txt")
+          STDERR.puts("Warning: couldn't get process memory usage!") unless ret
+        end
       end
 
       if @settings[:check_url] && server_env.url_available?
@@ -403,8 +414,20 @@ module BenchLib
         File.unlink "warmup_output_#{@settings[:timestamp]}.txt"
       end
       output["requests"]["benchmark"] = parse_wrk_into_stats(File.read "benchmark_output_#{@settings[:timestamp]}.txt")
-
       File.unlink "benchmark_output_#{@settings[:timestamp]}.txt"
+
+      ["warmup", "benchmark"].each do |mode|
+        mem_file = "#{mode}_output_mem_#{@settings[:timestamp]}"
+        if File.exist?(mem_file)
+          contents = File.read mem_file
+          if contents =~ /:\s+(\d+)$/
+            output["mem"][mode] = $1.to_i
+          else
+            STDERR.puts "Warning: couldn't parse memory usage from #{mode} file: #{contents.inspect}"
+          end
+          File.unlink mem_file
+        end
+      end
 
       json_text = JSON.pretty_generate(output)
       File.open(@settings[:out_file], "w") do |f|
