@@ -18,7 +18,7 @@
 
 # RSB_RUBIES: if set, use this space-separated list of RVM rubies instead of the "canonical" CRubies
 # RSB_FRAMEWORKS: if set to "rails" or "rack", only use that one instead of both. Can also be set to "rails rack" or "rack rails" for default behavior.
-# RSB_GEMFILE: if set to Dynamic, use Dynamic; if unset, use Ruby version's Gemfile
+# RSB_GEMFILE: if set to Dynamic or unset, use Dynamic; if set to a different value, use as the Gemfile
 # RSB_NUM_RUNS: number of runs/Ruby (default 10)
 # RSB_RANDOM_SEED: random seed for randomizing order of trials (optional)
 # RSB_DURATION: number of seconds to load-test for (default: 120)
@@ -134,7 +134,8 @@ def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
     suppress_server_output: OPTS[:suppress_server_output],
   })
   if OPTS[:rsb_gemfile].downcase == "dynamic"
-    # Don't set, which requests dynamic Gemfile generation
+    # Dynamic Gemfile generation
+    opts[:bundle_gemfile] = "dynamic"
   else
     # Set to something, but not Dynamic - use what was requested.
     # This changes the default to using dynamic Gemfile generation!
