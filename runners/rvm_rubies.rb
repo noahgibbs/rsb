@@ -18,6 +18,7 @@
 
 # RSB_RUBIES: if set, use this space-separated list of RVM rubies instead of the "canonical" CRubies
 # RSB_FRAMEWORKS: if set to "rails" or "rack", only use that one instead of both. Can also be set to "rails rack" or "rack rails" for default behavior.
+# RSB_GEMFILE: if set to Dynamic, use Dynamic; if unset, use Ruby version's Gemfile
 # RSB_NUM_RUNS: number of runs/Ruby (default 10)
 # RSB_RANDOM_SEED: random seed for randomizing order of trials (optional)
 # RSB_DURATION: number of seconds to load-test for (default: 120)
@@ -40,6 +41,7 @@ KNOWN_ENV_VARS = [
   "RSB_RUBIES", "RSB_FRAMEWORKS", "RSB_NUM_RUNS", "RSB_RANDOM_SEED", "RSB_DURATION", "RSB_WARMUP",
   "RSB_WRK_CONCURRENCY", "RSB_WRK_CONNECTIONS", "RSB_URL", "RSB_APP_SERVER", "RSB_PROCESSES",
   "RSB_THREADS", "RSB_DEBUG_SERVER", "RSB_CLOSE_CONNECTION", "RSB_COMPACT", "RSB_GET_FINAL_MEM",
+  "RSB_GEMFILE",
 ]
 
 require_relative "../bench_lib"
@@ -60,6 +62,7 @@ OPTS[:wrk_close_connection] = ENV["RSB_CLOSE_CONNECTION"] ? true : false
 OPTS[:rack_env] = ENV["RACK_ENV"] || ENV["RAILS_ENV"] || "production"
 OPTS[:compact] = ENV["RSB_COMPACT"] ? true : false
 OPTS[:get_final_mem] = ENV["RSB_GET_FINAL_MEM"] ? true : false
+OPTS[:rsb_gemfile] = ENV["RSB_GEMFILE"] || "dynamic"
 
 # Integer environment parameters
 [
@@ -130,6 +133,15 @@ def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
     # Useful for debugging, annoying for day-to-day use
     suppress_server_output: OPTS[:suppress_server_output],
   })
+  if OPTS[:rsb_gemfile].downcase == "dynamic"
+    # Don't set, which requests dynamic Gemfile generation
+  else
+    # Set to something, but not Dynamic - use what was requested.
+    # This changes the default to using dynamic Gemfile generation!
+    # For most people, this is clearly an improvement.
+    # I'd worry more if this runner were frequently used.
+    opts[:bundle_gemfile] = OPTS[:rsb_gemfile]
+  end
   opts[:extra_env] ||= {}
   # Can't include this in the merge above or it'll overwrite Puma's extra_env
   opts[:extra_env]["RSB_RUN_INDEX"] = run_index
