@@ -63,7 +63,7 @@ OPTS[:wrk_close_connection] = ENV["RSB_CLOSE_CONNECTION"] ? true : false
 OPTS[:rack_env] = ENV["RACK_ENV"] || ENV["RAILS_ENV"] || "production"
 OPTS[:compact] = ENV["RSB_COMPACT"] ? true : false
 OPTS[:get_final_mem] = ENV["RSB_GET_FINAL_MEM"] ? true : false
-OPTS[:rsb_gemfile] = ENV["RSB_GEMFILE"] || "dynamic"
+OPTS[:bundle_gemfile] = ENV["RSB_GEMFILE"] || "dynamic"
 
 # Integer environment parameters
 [
@@ -110,7 +110,7 @@ COUNTERS = {
 
 def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
   rr_opts = options_by_framework_and_server(rack_or_rails, OPTS[:app_server], processes: OPTS[:processes], threads: OPTS[:threads])
-  setup_gemfile(OPTS[:ruby], OPTS[:framework], OPTS)
+  setup_gemfile(rvm_ruby_version, rack_or_rails, OPTS)
   extra_gems = rr_opts.delete(:extra_gems) || [] # Can be used for dynamic Gemfile generation
 
   opts = rr_opts.merge({
@@ -135,16 +135,7 @@ def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
     # Useful for debugging, annoying for day-to-day use
     suppress_server_output: OPTS[:suppress_server_output],
   })
-  if OPTS[:rsb_gemfile].downcase == "dynamic"
-    # Dynamic Gemfile generation
-    opts[:bundle_gemfile] = "dynamic"
-  else
-    # Set to something, but not Dynamic - use what was requested.
-    # This changes the default to using dynamic Gemfile generation!
-    # For most people, this is clearly an improvement.
-    # I'd worry more if this runner were frequently used.
-    opts[:bundle_gemfile] = OPTS[:rsb_gemfile]
-  end
+  # NOTE: don't currently support extra_gems!
   opts[:extra_env] ||= {}
   # Can't include this in the merge above or it'll overwrite Puma's extra_env
   opts[:extra_env]["RSB_RUN_INDEX"] = run_index
