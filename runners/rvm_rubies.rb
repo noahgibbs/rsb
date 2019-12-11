@@ -18,7 +18,7 @@
 
 # RSB_RUBIES: if set, use this space-separated list of RVM rubies instead of the "canonical" CRubies
 # RSB_FRAMEWORKS: if set to "rails" or "rack", only use that one instead of both. Can also be set to "rails rack" or "rack rails" for default behavior.
-# RSB_GEMFILE: if set to Dynamic or unset, use Dynamic; if set to a different value, use as the Gemfile
+# RSB_BUNDLE_GEMFILE: if set to dynamic or unset, use dynamic; if set to a different value, use as the Gemfile
 # RSB_NUM_RUNS: number of runs/Ruby (default 10)
 # RSB_RANDOM_SEED: random seed for randomizing order of trials (optional)
 # RSB_DURATION: number of seconds to load-test for (default: 120)
@@ -41,7 +41,7 @@ KNOWN_ENV_VARS = [
   "RSB_RUBIES", "RSB_FRAMEWORKS", "RSB_NUM_RUNS", "RSB_RANDOM_SEED", "RSB_DURATION", "RSB_WARMUP",
   "RSB_WRK_CONCURRENCY", "RSB_WRK_CONNECTIONS", "RSB_URL", "RSB_APP_SERVER", "RSB_PROCESSES",
   "RSB_THREADS", "RSB_DEBUG_SERVER", "RSB_CLOSE_CONNECTION", "RSB_COMPACT", "RSB_GET_FINAL_MEM",
-  "RSB_GEMFILE",
+  "RSB_BUNDLE_GEMFILE",
 ]
 
 require_relative "../bench_lib"
@@ -63,7 +63,7 @@ OPTS[:wrk_close_connection] = ENV["RSB_CLOSE_CONNECTION"] ? true : false
 OPTS[:rack_env] = ENV["RACK_ENV"] || ENV["RAILS_ENV"] || "production"
 OPTS[:compact] = ENV["RSB_COMPACT"] ? true : false
 OPTS[:get_final_mem] = ENV["RSB_GET_FINAL_MEM"] ? true : false
-OPTS[:bundle_gemfile] = ENV["RSB_GEMFILE"] || "dynamic"
+OPTS[:bundle_gemfile] = ENV["RSB_BUNDLE_GEMFILE"] || "dynamic"
 
 # Integer environment parameters
 [
@@ -130,7 +130,6 @@ def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
     :verbose => 1,
 
     wrap_subprocess_cmd: "bash -l -c \"rvm use #{rvm_ruby_version} && COMMAND\"",
-    bundle_gemfile: "Gemfile.#{rvm_ruby_version}",
 
     # Useful for debugging, annoying for day-to-day use
     suppress_server_output: OPTS[:suppress_server_output],
