@@ -399,7 +399,7 @@ module BenchLib
         if @settings[:get_final_mem]
           u = URI(@settings[:url])
           u.path = "/process_mem"
-          ret = system("curl #{u.to_s}", out: "mem_output_#{:timestamp}.txt")
+          ret = system("curl #{u.to_s}", out: "mem_output_#{@settings[:timestamp]}.txt")
           STDERR.puts("Warning: couldn't get process memory usage!") unless ret
         end
       end
@@ -416,14 +416,18 @@ module BenchLib
       output["requests"]["benchmark"] = parse_wrk_into_stats(File.read "benchmark_output_#{@settings[:timestamp]}.txt")
       File.unlink "benchmark_output_#{@settings[:timestamp]}.txt"
 
-      mem_file = "mem_output_#{@settings[:timestamp]}.txt"
-      if File.exist?(mem_file)
-        contents = File.read mem_file
-        if contents =~ /:\s+(\d+)$/
-          output["mem"]["final bytes"] = $1.to_i
-          File.unlink mem_file  # Only unlink on success, leave for inspection on error
+      if @settings[:get_final_mem]
+        mem_file = "mem_output_#{@settings[:timestamp]}.txt"
+        if File.exist?(mem_file)
+          contents = File.read mem_file
+          if contents =~ /:\s+(\d+)$/
+            output["mem"]["final bytes"] = $1.to_i
+            File.unlink mem_file  # Only unlink on success, leave for inspection on error
+          else
+            STDERR.puts "Warning: couldn't parse memory usage from mem_output file: #{contents.inspect}"
+          end
         else
-          STDERR.puts "Warning: couldn't parse memory usage from mem_output file: #{contents.inspect}"
+          STDERR.puts "Warning: get_final_mem was true, but couldn't find memory output file!"
         end
       end
 

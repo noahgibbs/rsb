@@ -29,7 +29,7 @@ class SpeedTest
       [ 200, HEADERS, [ "Static Text" ] ]
     },
     # Not yet: /db
-    "/process_mem" => proc { g = GetProcessMem.new; [ 200, HEADERS, [ "Process memory in bytes: #{g.bytes}" ] ] },
+    "/process_mem" => proc { [ 200, HEADERS, [ "Process memory in bytes: #{GetProcessMem.new.bytes.to_i}" ] ] },
 
     # In multiprocess configurations, this only shuts down a single worker. That's probably not what you want.
     "/shutdown" => proc { exit 0 },
