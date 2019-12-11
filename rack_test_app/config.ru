@@ -9,14 +9,15 @@ if ENV["RACK_ENV"] == "profile"
 end
 
 class SpeedTest
+  HEADERS = { "Content-Type" => "text/html" }
   ROUTES = {
-    "/" => proc { [200, {"Content-Type" => "text/html"}, ["Hello World!"]] },
-    "/static" => proc { [200, {"Content-Type" => "text/html"}, ["Static Text"]] },
-    "/request" => proc { |env| r = Rack::Request.new(env); [200, {"Content-Type" => "text/html"}, ["Static Text"]] },
+    "/" => proc { [200, HEADERS, ["Hello World!"]] },
+    "/static" => proc { [200, HEADERS, ["Static Text"]] },
+    "/request" => proc { |env| r = Rack::Request.new(env); [200, HEADERS, ["Static Text"]] },
     "/mandelbrot" => proc { |env|
       x, i = env["QUERY_STRING"].split("&",2).map { |item| item.split("=", 2)[1].to_f }
 
-      [200, {"Content-Type" => "text/html"}, [ SpeedTest.in_mandelbrot(x,i) ? "in" : "out" ]]
+      [200, HEADERS, [ SpeedTest.in_mandelbrot(x,i) ? "in" : "out" ]]
     },
     "/fivehundred" => proc { raise "This raises an error!" },
     "/delay" => proc { |env|
@@ -25,9 +26,12 @@ class SpeedTest
         t = env["QUERY_STRING"].split("=",2)[1].to_f
       end
       sleep t
-      [ 200, { "Content-Type" => "text/html" }, [ "Static Text" ] ]
+      [ 200, HEADERS, [ "Static Text" ] ]
     },
     # Not yet: /db
+    "/process_mem" => proc { [ 200, HEADERS, [ "Process memory in bytes: #{GetProcessMem.new.bytes.to_i}" ] ] },
+
+    # In multiprocess configurations, this only shuts down a single worker. That's probably not what you want.
     "/shutdown" => proc { exit 0 },
   }
 
@@ -43,7 +47,7 @@ class SpeedTest
     if route
       return route.call(env)
     else
-      [ 404, { "Content-Type" => "text/html" }, [ "Sad Trombone... Your route is not found." ] ]
+      [ 404, HEADERS, [ "Sad Trombone... Your route is not found." ] ]
     end
   end
 end

@@ -35,6 +35,6 @@ class SimpleBenchController < ApplicationController
   # will allow you to get the memory usage.
   def process_mem
     mem = GetProcessMem.new
-    render :text => "Process memory in bytes: #{mem.bytes}"
+    render :text => "Process memory in bytes: #{mem.bytes.to_i}"
   end
 end

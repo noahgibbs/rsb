@@ -33,10 +33,13 @@
 # RSB_CLOSE_CONNECTION: if true, specify the connection-close header when using wrk; needed for good JRuby performance on Puma
 # RSB_DEBUG_SERVER: if true, show server output instead of suppressing it. Some errors are fine, others not... :-/
 
+# RSB_COMPACT: turn on manual memory compaction via GC.compact (note: should only be allowed for Ruby 2.7+ and only useful for 2.7-series Rubies)
+# RSB_GET_FINAL_MEM: query the Ruby process's memory usage after all requests have finished
+
 KNOWN_ENV_VARS = [
   "RSB_RUBIES", "RSB_FRAMEWORKS", "RSB_NUM_RUNS", "RSB_RANDOM_SEED", "RSB_DURATION", "RSB_WARMUP",
   "RSB_WRK_CONCURRENCY", "RSB_WRK_CONNECTIONS", "RSB_URL", "RSB_APP_SERVER", "RSB_PROCESSES",
-  "RSB_THREADS", "RSB_DEBUG_SERVER", "RSB_CLOSE_CONNECTION"
+  "RSB_THREADS", "RSB_DEBUG_SERVER", "RSB_CLOSE_CONNECTION", "RSB_COMPACT", "RSB_GET_FINAL_MEM",
 ]
 
 require_relative "../bench_lib"
@@ -55,6 +58,8 @@ raise "Unknown app server: #{OPTS[:app_server].inspect}, must be one of #{BenchL
 OPTS[:suppress_server_output] = ENV["RSB_DEBUG_SERVER"] ? false : true
 OPTS[:wrk_close_connection] = ENV["RSB_CLOSE_CONNECTION"] ? true : false
 OPTS[:rack_env] = ENV["RACK_ENV"] || ENV["RAILS_ENV"] || "production"
+OPTS[:compact] = ENV["RSB_COMPACT"] ? true : false
+OPTS[:get_final_mem] = ENV["RSB_GET_FINAL_MEM"] ? true : false
 
 # Integer environment parameters
 [
