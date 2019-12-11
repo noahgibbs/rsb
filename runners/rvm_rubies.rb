@@ -47,6 +47,7 @@ KNOWN_ENV_VARS = [
 require_relative "../bench_lib"
 include BenchLib
 include BenchLib::OptionsBuilder
+include BenchLib::GemfileGenerator
 
 OPTS = {}
 
@@ -109,6 +110,7 @@ COUNTERS = {
 
 def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
   rr_opts = options_by_framework_and_server(rack_or_rails, OPTS[:app_server], processes: OPTS[:processes], threads: OPTS[:threads])
+  setup_gemfile(OPTS[:ruby], OPTS[:framework], OPTS)
   extra_gems = rr_opts.delete(:extra_gems) || [] # Can be used for dynamic Gemfile generation
 
   opts = rr_opts.merge({
