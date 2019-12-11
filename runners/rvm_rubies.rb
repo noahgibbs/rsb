@@ -129,9 +129,11 @@ def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
     bundler_version: "1.17.3",
     #bundle_gemfile: nil,      # If explicitly nil, don't set. If omitted, set to Gemfile.$ruby_version
 
-    :verbose => 1,
+    verbose: 1,
 
     wrap_subprocess_cmd: "bash -l -c \"rvm use #{rvm_ruby_version} && COMMAND\"",
+
+    get_final_mem: OPTS[:get_final_mem],
 
     # Useful for debugging, annoying for day-to-day use
     suppress_server_output: OPTS[:suppress_server_output],
