@@ -64,6 +64,7 @@ OPTS[:rack_env] = ENV["RACK_ENV"] || ENV["RAILS_ENV"] || "production"
 OPTS[:compact] = ENV["RSB_COMPACT"] ? true : false
 OPTS[:get_final_mem] = ENV["RSB_GET_FINAL_MEM"] ? true : false
 OPTS[:bundle_gemfile] = ENV["RSB_BUNDLE_GEMFILE"] || "dynamic"
+OPTS[:extra_env] = {}  # Add an env var for it?
 
 # Integer environment parameters
 [
@@ -109,8 +110,9 @@ COUNTERS = {
 }
 
 def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
+  extra_env = OPTS[:extra_env]
   rr_opts = options_by_framework_and_server(rack_or_rails, OPTS[:app_server], processes: OPTS[:processes], threads: OPTS[:threads])
-  setup_gemfile(rvm_ruby_version, rack_or_rails, OPTS)
+  setup_gemfile(rvm_ruby_version, rack_or_rails, rr_opts)
   extra_gems = rr_opts.delete(:extra_gems) || [] # Can be used for dynamic Gemfile generation
 
   opts = rr_opts.merge({
@@ -134,8 +136,8 @@ def run_benchmark(rvm_ruby_version, rack_or_rails, run_index)
     # Useful for debugging, annoying for day-to-day use
     suppress_server_output: OPTS[:suppress_server_output],
   })
-  # NOTE: don't currently support extra_gems!
   opts[:extra_env] ||= {}
+  opts[:extra_env].merge!(extra_env)
   # Can't include this in the merge above or it'll overwrite Puma's extra_env
   opts[:extra_env]["RSB_RUN_INDEX"] = run_index
 
