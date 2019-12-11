@@ -397,9 +397,9 @@ module BenchLib
 
         # For now this assumes a single-process configuration
         if @settings[:get_final_mem]
-          u = URL(@settings[:url])
+          u = URI(@settings[:url])
           u.path = "/process_mem"
-          ret = system("curl #{u.to_s}", out: "#{mode}_output_mem_#{:timestamp}.txt")
+          ret = system("curl #{u.to_s}", out: "mem_output_#{:timestamp}.txt")
           STDERR.puts("Warning: couldn't get process memory usage!") unless ret
         end
       end
@@ -416,16 +416,14 @@ module BenchLib
       output["requests"]["benchmark"] = parse_wrk_into_stats(File.read "benchmark_output_#{@settings[:timestamp]}.txt")
       File.unlink "benchmark_output_#{@settings[:timestamp]}.txt"
 
-      ["warmup", "benchmark"].each do |mode|
-        mem_file = "#{mode}_output_mem_#{@settings[:timestamp]}"
-        if File.exist?(mem_file)
-          contents = File.read mem_file
-          if contents =~ /:\s+(\d+)$/
-            output["mem"][mode] = $1.to_i
-          else
-            STDERR.puts "Warning: couldn't parse memory usage from #{mode} file: #{contents.inspect}"
-          end
-          File.unlink mem_file
+      mem_file = "mem_output_#{@settings[:timestamp]}.txt"
+      if File.exist?(mem_file)
+        contents = File.read mem_file
+        if contents =~ /:\s+(\d+)$/
+          output["mem"]["final bytes"] = $1.to_i
+          File.unlink mem_file  # Only unlink on success, leave for inspection on error
+        else
+          STDERR.puts "Warning: couldn't parse memory usage from mem_output file: #{contents.inspect}"
         end
       end
 
