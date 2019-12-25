@@ -230,7 +230,13 @@ module BenchLib
       if @settings[:wrk_binary] == "wrk"
         which_wrk = `which wrk`
         unless which_wrk && which_wrk.strip != ""
-          raise "No wrk binary in path! Build or install the binary and/or specify a path!"
+          raise "No wrk binary in path! Build or install the binary and/or specify a path!" \
+                "\n\n" \
+                "  To install wrk please refer to the official documentation:\n" \
+                "\n" \
+                "    * Linux: https://github.com/wg/wrk/wiki/Installing-Wrk-on-Linux\n" \
+                "    * OS X: https://github.com/wg/wrk/wiki/Installing-wrk-on-OS-X\n" \
+                "\n"
         end
       end
 
