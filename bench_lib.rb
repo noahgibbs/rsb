@@ -12,6 +12,7 @@
 require "json"
 require "bundler"
 require "timeout"
+require "uri"
 
 module BenchLib
 
